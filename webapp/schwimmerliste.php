@@ -9,7 +9,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: schwimmerliste.php");
+    header("Location: /VAIBad_2/webapp/schwimmerliste.php");
     exit();
 }
 
@@ -23,7 +23,7 @@ function berechneAlter($geburtsjahr) {
     return $aktuellesJahr - $geburtsjahr;
 }
 
-// HTML-Header einbinden (falls vorhanden)
+// HTML-Header einbinden
 if (file_exists('includes/header.php')) {
     include 'includes/header.php';
 } else {
@@ -32,20 +32,20 @@ if (file_exists('includes/header.php')) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Schwimmerliste - VAIBad</title>
-        <link rel="stylesheet" href="css/style.css">
+        <title>Teilnehmerliste - VAIBad</title>
+        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
     </head>
     <body>';
 }
 ?>
 
-<!-- Hauptinhalt -->
 <div class="container">
-    <h1>Schwimmerliste</h1>
+    <h1>Teilnehmerliste</h1>
 
-    <!-- Button für neuen Schwimmer -->
+    <!-- Button für neuen Schwimmer und Startseite -->
     <div class="action-bar">
-        <a href="neuer_schwimmer.php" class="btn btn-primary">Neuer Schwimmer</a>
+        <a href="/VAIBad_2/webapp/neuer_schwimmer.php" class="btn btn-primary">Neuer Teilnehmer</a>
+        <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
     <!-- Tabelle mit Schwimmerdaten -->
@@ -72,21 +72,21 @@ if (file_exists('includes/header.php')) {
                             <td><?php echo date('d.m.Y H:i', strtotime($row['erstelldatum'])); ?></td>
                             <td class="actions">
                                 <!-- Bearbeiten-Button -->
-                                <a href="bearbeiten_schwimmer.php?id=<?php echo $row['id']; ?>"
+                                <a href="/VAIBad_2/webapp/bearbeiten_schwimmer.php?id=<?php echo $row['id']; ?>"
                                    class="btn btn-edit" title="Bearbeiten">
                                     Bearbeiten
                                 </a>
 
                                 <!-- Verknüpfung hinzufügen-Button -->
-                                <a href="neue_verknuepfung.php?schwimmer_id=<?php echo $row['id']; ?>"
+                                <a href="/VAIBad_2/webapp/neue_verknuepfung.php?schwimmer_id=<?php echo $row['id']; ?>"
                                    class="btn btn-link" title="Verknüpfung mit Sponsor">
                                     Verknüpfen
                                 </a>
 
                                 <!-- Löschen-Button -->
-                                <a href="schwimmerliste.php?action=delete&id=<?php echo $row['id']; ?>"
+                                <a href="/VAIBad_2/webapp/schwimmerliste.php?action=delete&id=<?php echo $row['id']; ?>"
                                    class="btn btn-delete"
-                                   onclick="return confirm('Möchtest du diesen Schwimmer wirklich löschen?')"
+                                   onclick="return confirm('Möchtest du diesen Teilnehmer wirklich löschen?')"
                                    title="Löschen">
                                     Löschen
                                 </a>
@@ -95,7 +95,7 @@ if (file_exists('includes/header.php')) {
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="6" class="no-data">Keine Schwimmer gefunden.</td>
+                        <td colspan="6" class="no-data">Keine Teilnehmer gefunden.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -104,7 +104,7 @@ if (file_exists('includes/header.php')) {
 </div>
 
 <?php
-// HTML-Footer einbinden (falls vorhanden)
+// HTML-Footer einbinden
 if (file_exists('includes/footer.php')) {
     include 'includes/footer.php';
 } else {
@@ -112,6 +112,5 @@ if (file_exists('includes/footer.php')) {
     </html>';
 }
 
-// Datenbankverbindung schließen
 $conn->close();
 ?>

@@ -2,50 +2,31 @@
 // Datenbankverbindung einbinden
 require_once 'config.php';
 
-// Schwimmer-ID prüfen
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header("Location: schwimmerliste.php");
-    exit();
-}
-
-$id = intval($_GET['id']);
-
-// Schwimmerdaten abrufen
-$stmt = $conn->prepare("SELECT id, vorname, nachname, geburtsjahr, schwimmleistung FROM Schwimmer WHERE id = ?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$result = $stmt->get_result();
-$schwimmer = $result->fetch_assoc();
-$stmt->close();
-
-if (!$schwimmer) {
-    header("Location: schwimmerliste.php");
-    exit();
-}
-
 // Formular verarbeiten
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $vorname = trim($_POST['vorname']);
     $nachname = trim($_POST['nachname']);
     $geburtsjahr = intval($_POST['geburtsjahr']);
-    $schwimmleistung = intval($_POST['schwimmleistung']);
+    $schwimmleistung = (isset($_POST['schwimmleistung']) && $_POST['schwimmleistung'] != '') ? intval($_POST['schwimmleistung']) : NULL;
 
     // Validierung
     $fehler = [];
     if (empty($vorname)) $fehler[] = "Vorname ist erforderlich.";
     if (empty($nachname)) $fehler[] = "Nachname ist erforderlich.";
     if ($geburtsjahr < 1900 || $geburtsjahr > date('Y')) $fehler[] = "Ungültiges Geburtsjahr.";
-    if ($schwimmleistung <= 0) $fehler[] = "Schwimmleistung muss größer als 0 sein.";
+    if (isset($_POST['schwimmleistung']) && $_POST['schwimmleistung'] != '' && ($schwimmleistung <= 0)) {
+        $fehler[] = "Schwimmleistung muss größer als 0 sein.";
+    }
 
     if (empty($fehler)) {
-        // Schwimmer aktualisieren
-        $stmt = $conn->prepare("UPDATE Schwimmer SET vorname = ?, nachname = ?, geburtsjahr = ?, schwimmleistung = ? WHERE id = ?");
-        $stmt->bind_param("ssiii", $vorname, $nachname, $geburtsjahr, $schwimmleistung, $id);
+        // Schwimmer in die Datenbank einfügen
+        $stmt = $conn->prepare("INSERT INTO Schwimmer (vorname, nachname, geburtsjahr, schwimmleistung) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("ssii", $vorname, $nachname, $geburtsjahr, $schwimmleistung);
         $stmt->execute();
         $stmt->close();
 
         // Weiterleitung zur Schwimmerliste
-        header("Location: schwimmerliste.php");
+        header("Location: /VAIBad_2/webapp/schwimmerliste.php");
         exit();
     }
 }
@@ -59,15 +40,15 @@ if (file_exists('includes/header.php')) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Schwimmer bearbeiten - VAIBad</title>
-        <link rel="stylesheet" href="css/style.css">
+        <title>Neuer Schwimmer - VAIBad</title>
+        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
     </head>
     <body>';
 }
 ?>
 
 <div class="container">
-    <h1>Schwimmer bearbeiten</h1>
+    <h1>Neuer Schwimmer</h1>
 
     <!-- Fehler anzeigen -->
     <?php if (!empty($fehler)): ?>
@@ -81,35 +62,35 @@ if (file_exists('includes/header.php')) {
     <?php endif; ?>
 
     <!-- Formular -->
-    <form method="POST" action="bearbeiten_schwimmer.php?id=<?php echo $id; ?>" class="form">
+    <form method="POST" action="/VAIBad_2/webapp/neuer_schwimmer.php" class="form">
         <div class="form-group">
             <label for="vorname">Vorname:</label>
             <input type="text" id="vorname" name="vorname" required
-                   value="<?php echo htmlspecialchars($schwimmer['vorname']); ?>">
+                   value="<?php echo isset($vorname) ? htmlspecialchars($vorname) : ''; ?>">
         </div>
 
         <div class="form-group">
             <label for="nachname">Nachname:</label>
             <input type="text" id="nachname" name="nachname" required
-                   value="<?php echo htmlspecialchars($schwimmer['nachname']); ?>">
+                   value="<?php echo isset($nachname) ? htmlspecialchars($nachname) : ''; ?>">
         </div>
 
         <div class="form-group">
             <label for="geburtsjahr">Geburtsjahr:</label>
             <input type="number" id="geburtsjahr" name="geburtsjahr" required
                    min="1900" max="<?php echo date('Y'); ?>"
-                   value="<?php echo htmlspecialchars($schwimmer['geburtsjahr']); ?>">
+                   value="<?php echo isset($geburtsjahr) ? $geburtsjahr : ''; ?>">
         </div>
 
         <div class="form-group">
-            <label for="schwimmleistung">Schwimmleistung (Bahnen):</label>
-            <input type="number" id="schwimmleistung" name="schwimmleistung" required
-                   min="1" value="<?php echo htmlspecialchars($schwimmer['schwimmleistung']); ?>">
+            <label for="schwimmleistung">Schwimmleistung (Bahnen, optional):</label>
+            <input type="number" id="schwimmleistung" name="schwimmleistung"
+                   min="1" value="<?php echo isset($schwimmleistung) ? $schwimmleistung : ''; ?>">
         </div>
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Speichern</button>
-            <a href="schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>
+            <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>
         </div>
     </form>
 </div>

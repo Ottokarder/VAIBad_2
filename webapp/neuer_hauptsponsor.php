@@ -6,23 +6,25 @@ require_once 'config.php';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $name = trim($_POST['name']);
     $betrag_pro_bahn = str_replace(',', '.', trim($_POST['betrag_pro_bahn']));
-    $limit = intval($_POST['limit']);
+    $limit = (isset($_POST['limit']) && $_POST['limit'] != '') ? intval($_POST['limit']) : NULL;
 
     // Validierung
     $fehler = [];
     if (empty($name)) $fehler[] = "Name ist erforderlich.";
     if (!is_numeric($betrag_pro_bahn) || $betrag_pro_bahn <= 0) $fehler[] = "Betrag pro Bahn muss eine positive Zahl sein.";
-    if ($limit <= 0) $fehler[] = "Limit muss größer als 0 sein.";
+    if (isset($_POST['limit']) && $_POST['limit'] != '' && ($limit <= 0)) {
+        $fehler[] = "Limit muss größer als 0 sein.";
+    }
 
     if (empty($fehler)) {
-        // Sponsor in die Datenbank einfügen
-        $stmt = $conn->prepare("INSERT INTO Sponsoren (name, betrag_pro_bahn, `limit`) VALUES (?, ?, ?)");
+        // Hauptsponsor in die Datenbank einfügen
+        $stmt = $conn->prepare("INSERT INTO Hauptsponsoren (name, betrag_pro_bahn, `limit`) VALUES (?, ?, ?)");
         $stmt->bind_param("sdi", $name, $betrag_pro_bahn, $limit);
         $stmt->execute();
         $stmt->close();
 
-        // Weiterleitung zur Sponsorenliste
-        header("Location: sponsorenliste.php");
+        // Weiterleitung zur Hauptsponsorenliste
+        header("Location: /VAIBad_2/webapp/hauptsponsorenliste.php");
         exit();
     }
 }
@@ -36,15 +38,15 @@ if (file_exists('includes/header.php')) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Neuer Sponsor - VAIBad</title>
-        <link rel="stylesheet" href="css/style.css">
+        <title>Neuer Hauptsponsor - VAIBad</title>
+        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
     </head>
     <body>';
 }
 ?>
 
 <div class="container">
-    <h1>Neuer Sponsor</h1>
+    <h1>Neuer Hauptsponsor</h1>
 
     <!-- Fehler anzeigen -->
     <?php if (!empty($fehler)): ?>
@@ -58,7 +60,7 @@ if (file_exists('includes/header.php')) {
     <?php endif; ?>
 
     <!-- Formular -->
-    <form method="POST" action="neuer_sponsor.php" class="form">
+    <form method="POST" action="/VAIBad_2/webapp/neuer_hauptsponsor.php" class="form">
         <div class="form-group">
             <label for="name">Name:</label>
             <input type="text" id="name" name="name" required
@@ -72,14 +74,14 @@ if (file_exists('includes/header.php')) {
         </div>
 
         <div class="form-group">
-            <label for="limit">Limit:</label>
-            <input type="number" id="limit" name="limit" required
+            <label for="limit">Limit (optional, leer lassen für kein Limit):</label>
+            <input type="number" id="limit" name="limit"
                    min="1" value="<?php echo isset($limit) ? $limit : ''; ?>">
         </div>
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Speichern</button>
-            <a href="sponsorenliste.php" class="btn btn-secondary">Abbrechen</a>
+            <a href="/VAIBad_2/webapp/hauptsponsorenliste.php" class="btn btn-secondary">Abbrechen</a>
         </div>
     </form>
 </div>

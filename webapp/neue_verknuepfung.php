@@ -4,7 +4,7 @@ require_once 'config.php';
 
 // Schwimmer-ID prüfen
 if (!isset($_GET['schwimmer_id']) || !is_numeric($_GET['schwimmer_id'])) {
-    header("Location: schwimmerliste.php");
+    header("Location: /VAIBad_2/webapp/schwimmerliste.php");
     exit();
 }
 
@@ -19,12 +19,12 @@ $schwimmer = $result->fetch_assoc();
 $stmt->close();
 
 if (!$schwimmer) {
-    header("Location: schwimmerliste.php");
+    header("Location: /VAIBad_2/webapp/schwimmerliste.php");
     exit();
 }
 
 // Alle Sponsoren abrufen
-$sponsoren_result = $conn->query("SELECT id, betrag_pro_bahn, `limit` FROM Sponsoren ORDER BY id");
+$sponsoren_result = $conn->query("SELECT id, name, betrag_pro_bahn, `limit` FROM Sponsoren ORDER BY name");
 
 // Formular verarbeiten
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->close();
 
         // Weiterleitung zur Schwimmerliste
-        header("Location: schwimmerliste.php");
+        header("Location: /VAIBad_2/webapp/schwimmerliste.php");
         exit();
     }
 }
@@ -69,7 +69,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Neue Verknüpfung - VAIBad</title>
-        <link rel="stylesheet" href="css/style.css">
+        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
     </head>
     <body>';
 }
@@ -90,16 +90,16 @@ if (file_exists('includes/header.php')) {
     <?php endif; ?>
 
     <!-- Formular -->
-    <form method="POST" action="neue_verknuepfung.php?schwimmer_id=<?php echo $schwimmer_id; ?>" class="form">
+    <form method="POST" action="/VAIBad_2/webapp/neue_verknuepfung.php?schwimmer_id=<?php echo $schwimmer_id; ?>" class="form">
         <div class="form-group">
             <label for="sponsoren_id">Sponsor auswählen:</label>
             <select id="sponsoren_id" name="sponsoren_id" required>
                 <option value="">-- Bitte auswählen --</option>
                 <?php while ($sponsor = $sponsoren_result->fetch_assoc()): ?>
                     <option value="<?php echo $sponsor['id']; ?>">
-                        Sponsor #<?php echo $sponsor['id']; ?>
-                        (<?php echo htmlspecialchars($sponsor['betrag_pro_bahn']); ?> € pro Bahn,
-                        Limit: <?php echo htmlspecialchars($sponsor['limit']); ?>)
+                        <?php echo htmlspecialchars($sponsor['name']); ?>
+                        (<?php echo number_format($sponsor['betrag_pro_bahn'], 2, ',', '.'); ?> € pro Bahn,
+                        <?php echo ($sponsor['limit'] !== null) ? 'Limit: ' . htmlspecialchars($sponsor['limit']) : 'Ohne Limit'; ?>)
                     </option>
                 <?php endwhile; ?>
             </select>
@@ -107,7 +107,7 @@ if (file_exists('includes/header.php')) {
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Verknüpfung speichern</button>
-            <a href="schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>
+            <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>
         </div>
     </form>
 </div>

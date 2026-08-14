@@ -7,7 +7,6 @@ if (!isset($_GET['schwimmer_id']) || !is_numeric($_GET['schwimmer_id'])) {
     header("Location: /VAIBad_2/webapp/schwimmerliste.php");
     exit();
 }
-
 $schwimmer_id = intval($_GET['schwimmer_id']);
 
 // Schwimmerdaten abrufen
@@ -29,7 +28,6 @@ $sponsoren_result = $conn->query("SELECT id, name, betrag_pro_bahn, `limit` FROM
 // Formular verarbeiten
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $sponsoren_id = intval($_POST['sponsoren_id']);
-
     // Validierung
     $fehler = [];
     if ($sponsoren_id <= 0) {
@@ -52,7 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bind_param("ii", $schwimmer_id, $sponsoren_id);
         $stmt->execute();
         $stmt->close();
-
         // Weiterleitung zur Schwimmerliste
         header("Location: /VAIBad_2/webapp/schwimmerliste.php");
         exit();
@@ -92,6 +89,8 @@ if (file_exists('includes/header.php')) {
     <!-- Formular -->
     <form method="POST" action="/VAIBad_2/webapp/neue_verknuepfung.php?schwimmer_id=<?php echo $schwimmer_id; ?>" class="form">
         <div class="form-group">
+            <label for="sponsor_filter">Sponsor filtern:</label>
+            <input type="text" id="sponsor_filter" placeholder="Sponsorname eingeben..." onkeyup="filtereSponsoren()" style="width:100%; padding:.4rem .6rem; margin-bottom:.5rem;">
             <label for="sponsoren_id">Sponsor auswählen:</label>
             <select id="sponsoren_id" name="sponsoren_id" required>
                 <option value="">-- Bitte auswählen --</option>
@@ -104,13 +103,23 @@ if (file_exists('includes/header.php')) {
                 <?php endwhile; ?>
             </select>
         </div>
-
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Verknüpfung speichern</button>
             <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>
         </div>
     </form>
 </div>
+
+<script>
+function filtereSponsoren() {
+    var suchbegriff = document.getElementById('sponsor_filter').value.toLowerCase();
+    var select = document.getElementById('sponsoren_id');
+    for (var i = 1; i < select.options.length; i++) {
+        var text = select.options[i].text.toLowerCase();
+        select.options[i].style.display = (suchbegriff === '' || text.indexOf(suchbegriff) !== -1) ? '' : 'none';
+    }
+}
+</script>
 
 <?php
 // HTML-Footer einbinden
@@ -120,6 +129,5 @@ if (file_exists('includes/footer.php')) {
     echo '</body>
     </html>';
 }
-
 $conn->close();
 ?>

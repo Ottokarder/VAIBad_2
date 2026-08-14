@@ -14,8 +14,20 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
 }
 
 // Alle Sponsoren abrufen
-$sql = "SELECT id, name, betrag_pro_bahn, `limit` FROM Sponsoren ORDER BY name";
-$result = $conn->query($sql);
+// Filter aus GET holen (Textfilter "enthält")
+$filter = isset($_GET['filter']) ? trim($_GET['filter']) : '';
+
+if ($filter !== '') {
+    $suchbegriff = "%" . $filter . "%";
+    $stmt = $conn->prepare("SELECT id, name, betrag_pro_bahn, `limit` FROM Sponsoren WHERE name LIKE ? ORDER BY name");
+    $stmt->bind_param("s", $suchbegriff);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $stmt->close();
+} else {
+    $sql = "SELECT id, name, betrag_pro_bahn, `limit` FROM Sponsoren ORDER BY name";
+    $result = $conn->query($sql);
+}
 
 // HTML-Header einbinden
 if (file_exists('includes/header.php')) {
@@ -42,6 +54,17 @@ if (file_exists('includes/header.php')) {
         <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
+    <!-- Filter -->
+    <div class="action-bar" style="margin-bottom: 1rem;">
+        <form method="GET" action="/VAIBad_2/webapp/sponsorenliste.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+            <input type="text" name="filter" placeholder="Filter (Sponsorname)..." value="<?php echo htmlspecialchars($filter); ?>" style="flex:1; min-width:200px; padding:.4rem .6rem;">
+            <button type="submit" class="btn btn-primary">Filtern</button>
+            <?php if ($filter !== ''): ?>
+                <a href="/VAIBad_2/webapp/sponsorenliste.php" class="btn btn-secondary">Zurücksetzen</a>
+            <?php endif; ?>
+        </form>
+    </div>
+
     <!-- Tabelle mit Sponsorendaten -->
     <div class="table-container">
         <table class="data-table">
@@ -66,7 +89,6 @@ if (file_exists('includes/header.php')) {
                                    class="btn btn-edit" title="Bearbeiten">
                                     Bearbeiten
                                 </a>
-
                                 <!-- Löschen-Button -->
                                 <a href="/VAIBad_2/webapp/sponsorenliste.php?action=delete&id=<?php echo $row['id']; ?>"
                                    class="btn btn-delete"
@@ -95,6 +117,5 @@ if (file_exists('includes/footer.php')) {
     echo '</body>
     </html>';
 }
-
 $conn->close();
 ?>

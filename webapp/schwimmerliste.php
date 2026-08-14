@@ -14,8 +14,20 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
 }
 
 // Alle Schwimmer abrufen
-$sql = "SELECT id, startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag, schwimmleistung_gesamt, erstelldatum FROM Schwimmer ORDER BY startnummer, nachname, vorname";
-$result = $conn->query($sql);
+// Filter aus GET holen (Textfilter "enthält")
+$filter = isset($_GET['filter']) ? trim($_GET['filter']) : '';
+
+if ($filter !== '') {
+    $suchbegriff = "%" . $filter . "%";
+    $stmt = $conn->prepare("SELECT id, startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag, schwimmleistung_gesamt, erstelldatum FROM Schwimmer WHERE vorname LIKE ? OR nachname LIKE ? OR CAST(startnummer AS CHAR) LIKE ? ORDER BY startnummer, nachname, vorname");
+    $stmt->bind_param("sss", $suchbegriff, $suchbegriff, $suchbegriff);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $stmt->close();
+} else {
+    $sql = "SELECT id, startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag, schwimmleistung_gesamt, erstelldatum FROM Schwimmer ORDER BY startnummer, nachname, vorname";
+    $result = $conn->query($sql);
+}
 
 // Alter berechnen
 function berechneAlter($geburtsjahr) {
@@ -46,6 +58,17 @@ if (file_exists('includes/header.php')) {
     <div class="action-bar">
         <a href="/VAIBad_2/webapp/neuer_schwimmer.php" class="btn btn-primary">Neuer Teilnehmer</a>
         <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+    </div>
+
+    <!-- Filter -->
+    <div class="action-bar" style="margin-bottom: 1rem;">
+        <form method="GET" action="/VAIBad_2/webapp/schwimmerliste.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+            <input type="text" name="filter" placeholder="Filter (Name oder Startnr.)..." value="<?php echo htmlspecialchars($filter); ?>" style="flex:1; min-width:200px; padding:.4rem .6rem;">
+            <button type="submit" class="btn btn-primary">Filtern</button>
+            <?php if ($filter !== ''): ?>
+                <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-secondary">Zurücksetzen</a>
+            <?php endif; ?>
+        </form>
     </div>
 
     <!-- Tabelle mit Schwimmerdaten -->

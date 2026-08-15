@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS Sponsoren (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
     betrag_pro_bahn DECIMAL(10, 2) NOT NULL,
-    `limit` INT NOT NULL
+    `limit` INT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabelle Teams erstellen

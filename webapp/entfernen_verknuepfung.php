@@ -18,7 +18,11 @@ $stmt->bind_param("ii", $schwimmer_id, $sponsor_id);
 $stmt->execute();
 $stmt->close();
 
-// Zurück zur Bearbeitungsseite
-header("Location: /VAIBad_2/webapp/bearbeiten_schwimmer.php?id=$schwimmer_id");
+// Ziel-Seite wählen (Standard: Bearbeitungsseite des Schwimmers)
+if (isset($_GET['back']) && $_GET['back'] === 'verknuepfung') {
+    header("Location: /VAIBad_2/webapp/neue_verknuepfung.php?schwimmer_id=$schwimmer_id");
+} else {
+    header("Location: /VAIBad_2/webapp/bearbeiten_schwimmer.php?id=$schwimmer_id");
+}
 exit();
 ?>

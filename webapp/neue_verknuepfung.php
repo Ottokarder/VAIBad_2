@@ -116,6 +116,62 @@ if (file_exists('includes/header.php')) {
             <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-primary">Fertig</a>
         </div>
     </form>
+
+    <!-- Bereits verknüpfte Sponsoren -->
+    <?php
+    $verknuepfungen_sql = "
+        SELECT s.id, s.name, s.betrag_pro_bahn, s.`limit`
+        FROM schwimmer_sponsor ss
+        JOIN Sponsoren s ON ss.sponsoren_id = s.id
+        WHERE ss.schwimmer_id = ?
+        ORDER BY s.name";
+    $verknuepfungen_stmt = $conn->prepare($verknuepfungen_sql);
+    $verknuepfungen_stmt->bind_param("i", $schwimmer_id);
+    $verknuepfungen_stmt->execute();
+    $verknuepfungen_result = $verknuepfungen_stmt->get_result();
+    $verknuepfungen_stmt->close();
+    ?>
+    <div class="verknuepfungen-liste">
+        <h3>Bereits verknüpfte Sponsoren</h3>
+        <?php if ($verknuepfungen_result->num_rows > 0): ?>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Betrag pro Bahn (€)</th>
+                        <th>Limit</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $verknuepfungen_stmt2 = $conn->prepare($verknuepfungen_sql);
+                    $verknuepfungen_stmt2->bind_param("i", $schwimmer_id);
+                    $verknuepfungen_stmt2->execute();
+                    $verknuepfungen_result = $verknuepfungen_stmt2->get_result();
+                    while ($verknuepfung = $verknuepfungen_result->fetch_assoc()): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($verknuepfung['name']); ?></td>
+                            <td><?php echo number_format($verknuepfung['betrag_pro_bahn'], 2, ',', '.'); ?></td>
+                            <td>
+                                <?php echo ($verknuepfung['limit'] !== null) ? htmlspecialchars($verknuepfung['limit']) : 'Ohne Limit'; ?>
+                            </td>
+                            <td class="actions">
+                                <a href="/VAIBad_2/webapp/entfernen_verknuepfung.php?schwimmer_id=<?php echo $schwimmer_id; ?>&sponsor_id=<?php echo $verknuepfung['id']; ?>&back=verknuepfung"
+                                   class="btn btn-delete"
+                                   onclick="return confirm('Möchtest du diese Verknüpfung wirklich entfernen?')"
+                                   title="Verknüpfung entfernen">
+                                    Entfernen
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p>Noch keine Sponsoren verknüpft.</p>
+        <?php endif; ?>
+    </div>
 </div>
 
 <script>

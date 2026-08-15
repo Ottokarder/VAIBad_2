@@ -40,6 +40,49 @@ if ($result && $result->num_rows > 0) {
     $zeilen = [];
 }
 
+// CSV-Export: wenn ?export=csv, Datei direkt zum Download ausliefern.
+// Trenner Semikolon + UTF-8-BOM, damit Excel die Datei mit Umlauten korrekt öffnet.
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    $dateiname = 'spendenbetr_' . date('Y-m-d_His') . '.csv';
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $dateiname . '"');
+    header('Cache-Control: no-store, no-cache, must-revalidate');
+
+    $out = fopen('php://output', 'w');
+    // UTF-8-BOM für Excel
+    fwrite($out, "\xEF\xBB\xBF");
+    // Spaltenüberschriften
+    fputcsv($out, [
+        'Startnummer', 'Schwimmer', 'Sponsor',
+        'Spendenbetrag Vormittag', 'Spendenbetrag Nachmittag', 'Spendenbetrag Gesamt',
+        'Erstelldatum'
+    ], ';');
+    // Datenzeilen
+    foreach ($zeilen as $r) {
+        fputcsv($out, [
+            $r['startnummer'],
+            $r['schwimmer_name'],
+            $r['sponsor_name'],
+            number_format($r['spendenbetrag_vormittag'], 2, ',', ''),
+            number_format($r['spendenbetrag_nachmittag'], 2, ',', ''),
+            number_format($r['spendenbetrag_gesamt'], 2, ',', ''),
+            date('d.m.Y H:i', strtotime($r['erstelldatum']))
+        ], ';');
+    }
+    // Summenzeile
+    fputcsv($out, [
+        '', 'Summe (' . $anzahl . ' Einträge)', '',
+        number_format($summe_vormittag, 2, ',', ''),
+        number_format($summe_nachmittag, 2, ',', ''),
+        number_format($summe_gesamt, 2, ',', ''),
+        ''
+    ], ';');
+    fclose($out);
+    $conn->close();
+    exit;
+}
+
 // HTML-Header einbinden
 if (file_exists('includes/header.php')) {
     include 'includes/header.php';
@@ -60,6 +103,7 @@ if (file_exists('includes/header.php')) {
 
     <div class="action-bar">
         <a href="/VAIBad_2/webapp/spendenberechnung.php" class="btn btn-primary">Neu berechnen</a>
+        <a href="/VAIBad_2/webapp/spenden_sponsoren.php?export=csv" class="btn btn-primary">Als CSV herunterladen</a>
         <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 

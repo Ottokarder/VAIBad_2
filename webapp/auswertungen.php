@@ -90,6 +90,44 @@ $top10_hauptsponsoren = hole_top10($conn, "
     LIMIT 10
 ");
 
+// --- Gesamt geschwommene Distanz in km ---
+// Unter 14 Jahre: 25 m pro Bahn, ueber 14 Jahre: 50 m pro Bahn.
+// Distanz (km) = Bahnen * Meter pro Bahn / 1000.
+$distanz_unter14 = hole_top10($conn, "
+    SELECT SUM(s.schwimmleistung_gesamt) AS bahnen_gesamt,
+           SUM(s.schwimmleistung_vormittag) AS bahnen_vormittag,
+           SUM(s.schwimmleistung_nachmittag) AS bahnen_nachmittag
+    FROM Schwimmer s
+    WHERE (" . $aktuelles_jahr . " - s.geburtsjahr) <= 14
+");
+$distanz_ueber14 = hole_top10($conn, "
+    SELECT SUM(s.schwimmleistung_gesamt) AS bahnen_gesamt,
+           SUM(s.schwimmleistung_vormittag) AS bahnen_vormittag,
+           SUM(s.schwimmleistung_nachmittag) AS bahnen_nachmittag
+    FROM Schwimmer s
+    WHERE (" . $aktuelles_jahr . " - s.geburtsjahr) > 14
+");
+
+// Hilfsfunktion: Bahnen -> km, Metadaten je nach Altersgruppe.
+function bahnen_zu_km($bahnen, $meter_pro_bahn) {
+    return ($bahnen !== null && $bahnen > 0) ? ($bahnen * $meter_pro_bahn / 1000.0) : 0.0;
+}
+
+$m_unter14 = 25;
+$m_ueber14 = 50;
+
+$km_unter14_vormittag  = bahnen_zu_km($distanz_unter14 ? $distanz_unter14[0]['bahnen_vormittag'] : 0, $m_unter14);
+$km_unter14_nachmittag = bahnen_zu_km($distanz_unter14 ? $distanz_unter14[0]['bahnen_nachmittag'] : 0, $m_unter14);
+$km_unter14_gesamt     = bahnen_zu_km($distanz_unter14 ? $distanz_unter14[0]['bahnen_gesamt'] : 0, $m_unter14);
+
+$km_ueber14_vormittag  = bahnen_zu_km($distanz_ueber14 ? $distanz_ueber14[0]['bahnen_vormittag'] : 0, $m_ueber14);
+$km_ueber14_nachmittag = bahnen_zu_km($distanz_ueber14 ? $distanz_ueber14[0]['bahnen_nachmittag'] : 0, $m_ueber14);
+$km_ueber14_gesamt     = bahnen_zu_km($distanz_ueber14 ? $distanz_ueber14[0]['bahnen_gesamt'] : 0, $m_ueber14);
+
+$km_gesamt_vormittag  = $km_unter14_vormittag + $km_ueber14_vormittag;
+$km_gesamt_nachmittag = $km_unter14_nachmittag + $km_ueber14_nachmittag;
+$km_gesamt            = $km_unter14_gesamt + $km_ueber14_gesamt;
+
 // CSV-Export: wenn ?export=csv, Datei direkt zum Download ausliefern.
 // Trenner Semikolon + UTF-8-BOM, damit Excel die Datei mit Umlauten korrekt öffnet.
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
@@ -104,6 +142,15 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
     $fmt = function($v) { return ($v === null) ? '' : $v; };
     $euro = function($v) { return ($v === null) ? '' : number_format((float)$v, 2, ',', ''); };
+    $km = function($v) { return number_format((float)$v, 3, ',', ''); };
+
+    // Gesamt geschwommene Distanz in km
+    fputcsv($out, ['Gesamt geschwommene Distanz (km)'], ';');
+    fputcsv($out, ['Altersgruppe', 'm/Bahn', 'Vormittag (km)', 'Nachmittag (km)', 'Gesamt (km)'], ';');
+    fputcsv($out, ['Unter 14 Jahre', '25', $km($km_unter14_vormittag), $km($km_unter14_nachmittag), $km($km_unter14_gesamt)], ';');
+    fputcsv($out, ['Über 14 Jahre', '50', $km($km_ueber14_vormittag), $km($km_ueber14_nachmittag), $km($km_ueber14_gesamt)], ';');
+    fputcsv($out, ['Gesamt', '', $km($km_gesamt_vormittag), $km($km_gesamt_nachmittag), $km($km_gesamt)], ';');
+    fputcsv($out, [], ';');
 
     // Top-Ten Schwimmer über 14 (50m)
     fputcsv($out, ['Top-Ten Schwimmer über 14 Jahre (50m-Bahnen)'], ';');
@@ -204,6 +251,47 @@ if (file_exists('includes/header.php')) {
             <a href="/VAIBad_2/webapp/spendenberechnung_hauptsponsoren.php">Hauptsponsoren</a>.
         </div>
     <?php endif; ?>
+
+    <!-- Gesamt geschwommene Distanz in km -->
+    <h2 style="margin-top: 2rem;">Gesamt geschwommene Distanz (km)</h2>
+    <p>
+        Unter 14 Jahre: 25&nbsp;m pro Bahn &middot; Über 14 Jahre: 50&nbsp;m pro Bahn.
+    </p>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Altersgruppe</th>
+                    <th>m pro Bahn</th>
+                    <th>Vormittag (km)</th>
+                    <th>Nachmittag (km)</th>
+                    <th>Gesamt (km)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Unter 14 Jahre</td>
+                    <td>25</td>
+                    <td><?php echo number_format($km_unter14_vormittag, 3, ',', '.'); ?></td>
+                    <td><?php echo number_format($km_unter14_nachmittag, 3, ',', '.'); ?></td>
+                    <td><strong><?php echo number_format($km_unter14_gesamt, 3, ',', '.'); ?></strong></td>
+                </tr>
+                <tr>
+                    <td>Über 14 Jahre</td>
+                    <td>50</td>
+                    <td><?php echo number_format($km_ueber14_vormittag, 3, ',', '.'); ?></td>
+                    <td><?php echo number_format($km_ueber14_nachmittag, 3, ',', '.'); ?></td>
+                    <td><strong><?php echo number_format($km_ueber14_gesamt, 3, ',', '.'); ?></strong></td>
+                </tr>
+                <tr style="font-weight: bold; background-color: #f0f0f0;">
+                    <td colspan="2">Gesamt</td>
+                    <td><?php echo number_format($km_gesamt_vormittag, 3, ',', '.'); ?></td>
+                    <td><?php echo number_format($km_gesamt_nachmittag, 3, ',', '.'); ?></td>
+                    <td><?php echo number_format($km_gesamt, 3, ',', '.'); ?></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
     <!-- Top-Ten Schwimmer über 14 (50m-Bahnen) -->
     <h2 style="margin-top: 2rem;">Top-Ten Schwimmer über 14 Jahre (50m-Bahnen)</h2>

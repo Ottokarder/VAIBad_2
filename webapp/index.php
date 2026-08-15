@@ -32,6 +32,7 @@ if (file_exists('includes/header.php')) {
                 <li><a href="/VAIBad_2/webapp/teams.php">Teams</a></li>
                 <li><a href="/VAIBad_2/webapp/spenden_sponsoren.php">Spenden</a></li>
                 <li><a href="/VAIBad_2/webapp/auswertungen.php">Auswertungen</a></li>
+                <li><a href="/VAIBad_2/webapp/spendenlisten.php">Spendenlisten</a></li>
             </ul>
         </nav>
     </div>
@@ -92,6 +93,11 @@ if (file_exists('includes/header.php')) {
             <h3>Auswertungen</h3>
             <p>Top-Ten-Listen und Spendentabellen. Umschaltung Vormittag/Nachmittag/Gesamt auf der Auswertungsseite.</p>
             <a href="/VAIBad_2/webapp/auswertungen.php" class="btn btn-primary">Zu den Auswertungen</a>
+        </div>
+        <div class="card">
+            <h3>Spendenlisten</h3>
+            <p>Listen aller Sponsoren, Teams und Hauptsponsoren mit Einzelschwimmern und Beträgen.</p>
+            <a href="/VAIBad_2/webapp/spendenlisten.php" class="btn btn-primary">Zu den Spendenlisten</a>
         </div>
     </div>
 </div>

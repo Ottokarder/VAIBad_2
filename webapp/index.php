@@ -89,9 +89,19 @@ if (file_exists('includes/header.php')) {
             <a href="/VAIBad_2/webapp/spenden_hauptsponsoren.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
         </div>
         <div class="card">
-            <h3>Auswertungen</h3>
-            <p>Top-Ten-Schwimmer nach Altersgruppen sowie Top-Ten-Sponsoren, -Teams und -Hauptsponsoren.</p>
-            <a href="/VAIBad_2/webapp/auswertungen.php" class="btn btn-primary">Zu den Auswertungen</a>
+            <h3>Auswertung Vormittag</h3>
+            <p>Top-Ten-Listen und Spendentabellen für den Vormittags-Durchlauf.</p>
+            <a href="/VAIBad_2/webapp/auswertungen.php?durchlauf=vormittag" class="btn btn-primary">Auswertung Vormittag</a>
+        </div>
+        <div class="card">
+            <h3>Auswertung Nachmittag</h3>
+            <p>Top-Ten-Listen und Spendentabellen für den Nachmittags-Durchlauf.</p>
+            <a href="/VAIBad_2/webapp/auswertungen.php?durchlauf=nachmittag" class="btn btn-primary">Auswertung Nachmittag</a>
+        </div>
+        <div class="card">
+            <h3>Auswertung Gesamt</h3>
+            <p>Top-Ten-Listen und Spendentabellen über beide Durchläufe gesamt.</p>
+            <a href="/VAIBad_2/webapp/auswertungen.php?durchlauf=gesamt" class="btn btn-primary">Auswertung Gesamt</a>
         </div>
     </div>
 </div>

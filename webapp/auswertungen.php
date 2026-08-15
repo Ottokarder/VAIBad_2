@@ -2,22 +2,48 @@
 // Datenbankverbindung einbinden
 require_once 'config.php';
 
-// Übersicht / Auswertungen
-//
-// Top-Ten-Schwimmer getrennt nach Altersgruppen:
-//   - über 14 Jahre (Alter > 14): 50m-Bahnen
-//   - unter 14 Jahre (Alter <= 14): 25m-Bahnen
-// je nach schwimmleistung_vormittag / _nachmittag / _gesamt.
-// Alter = aktuelles Jahr - geburtsjahr.
-//
-// Top-Ten-Sponsoren, -Teams, -Hauptsponsoren nach Spendensumme (aus den
-// Ergebnistabellen spenden_sponsoren / spenden_teams / spenden_hauptsponsoren).
-// Dafür müssen die Spendenberechnungen vorher gelaufen sein.
+// Auswertungen je Durchlauf: Vormittag, Nachmittag oder Gesamt.
+// ?durchlauf=vormittag|nachmittag|gesamt  (Default: gesamt)
+$durchlauf = isset($_GET['durchlauf']) ? $_GET['durchlauf'] : 'gesamt';
+if (!in_array($durchlauf, ['vormittag', 'nachmittag', 'gesamt'], true)) {
+    $durchlauf = 'gesamt';
+}
+
+// Zu verwendende Schwimmleistungsspalte und -label je Durchlauf.
+if ($durchlauf === 'vormittag') {
+    $leistung_spalte = 's.schwimmleistung_vormittag';
+    $leistung_label = 'Bahnen Vormittag';
+    $spenden_spalte_sponsoren = 'ss.spendenbetrag_vormittag';
+    $spenden_spalte_teams = 'st.spendenbetrag_vormittag';
+    $spenden_spalte_hauptsponsoren = 'sh.spendenbetrag_vormittag';
+    // Bei der Distanzberechnung: nur den jeweiligen Durchlauf.
+    $distanz_spalte_v = 's.schwimmleistung_vormittag';
+    $distanz_spalte_n = 's.schwimmleistung_vormittag'; // für "Gesamt-Spalte" = Vormittag
+    $titel = 'Auswertungen – Vormittag';
+} elseif ($durchlauf === 'nachmittag') {
+    $leistung_spalte = 's.schwimmleistung_nachmittag';
+    $leistung_label = 'Bahnen Nachmittag';
+    $spenden_spalte_sponsoren = 'ss.spendenbetrag_nachmittag';
+    $spenden_spalte_teams = 'st.spendenbetrag_nachmittag';
+    $spenden_spalte_hauptsponsoren = 'sh.spendenbetrag_nachmittag';
+    $distanz_spalte_v = 's.schwimmleistung_nachmittag';
+    $distanz_spalte_n = 's.schwimmleistung_nachmittag';
+    $titel = 'Auswertungen – Nachmittag';
+} else {
+    $leistung_spalte = 's.schwimmleistung_gesamt';
+    $leistung_label = 'Bahnen Gesamt';
+    $spenden_spalte_sponsoren = 'ss.spendenbetrag_gesamt';
+    $spenden_spalte_teams = 'st.spendenbetrag_gesamt';
+    $spenden_spalte_hauptsponsoren = 'sh.spendenbetrag_gesamt';
+    $distanz_spalte_v = 's.schwimmleistung_vormittag';
+    $distanz_spalte_n = 's.schwimmleistung_nachmittag';
+    $titel = 'Auswertungen – Gesamt';
+}
 
 $aktuelles_jahr = (int)date('Y');
 
-// Hilfsfunktion: eine Top-10-Abfrage ausführen und als Array zurückgeben.
-function hole_top10($conn, $sql) {
+// Hilfsfunktion: eine Abfrage ausführen und als Array zurückgeben.
+function hole_liste($conn, $sql) {
     $out = [];
     $res = $conn->query($sql);
     if ($res && $res->num_rows > 0) {
@@ -29,140 +55,124 @@ function hole_top10($conn, $sql) {
     return $out;
 }
 
-// --- Top-Ten Schwimmer über 14 (50m-Bahnen), nach Gesamt ---
-$top10_ueber14 = hole_top10($conn, "
+// --- Top-Ten Schwimmer über 14 (50m-Bahnen) ---
+$top10_ueber14 = hole_liste($conn, "
     SELECT s.startnummer, CONCAT(s.vorname, ' ', s.nachname) AS name,
            (" . $aktuelles_jahr . " - s.geburtsjahr) AS alter_jahre,
-           s.schwimmleistung_vormittag, s.schwimmleistung_nachmittag, s.schwimmleistung_gesamt
+           " . $leistung_spalte . " AS leistung
     FROM Schwimmer s
     WHERE (" . $aktuelles_jahr . " - s.geburtsjahr) > 14
-      AND s.schwimmleistung_gesamt > 0
-    ORDER BY s.schwimmleistung_gesamt DESC, s.schwimmleistung_vormittag DESC, s.startnummer ASC
+      AND " . $leistung_spalte . " > 0
+    ORDER BY " . $leistung_spalte . " DESC, s.startnummer ASC
     LIMIT 10
 ");
 
-// --- Top-Ten Schwimmer unter 14 (25m-Bahnen), nach Gesamt ---
-$top10_unter14 = hole_top10($conn, "
+// --- Top-Ten Schwimmer unter 14 (25m-Bahnen) ---
+$top10_unter14 = hole_liste($conn, "
     SELECT s.startnummer, CONCAT(s.vorname, ' ', s.nachname) AS name,
            (" . $aktuelles_jahr . " - s.geburtsjahr) AS alter_jahre,
-           s.schwimmleistung_vormittag, s.schwimmleistung_nachmittag, s.schwimmleistung_gesamt
+           " . $leistung_spalte . " AS leistung
     FROM Schwimmer s
     WHERE (" . $aktuelles_jahr . " - s.geburtsjahr) <= 14
-      AND s.schwimmleistung_gesamt > 0
-    ORDER BY s.schwimmleistung_gesamt DESC, s.schwimmleistung_vormittag DESC, s.startnummer ASC
+      AND " . $leistung_spalte . " > 0
+    ORDER BY " . $leistung_spalte . " DESC, s.startnummer ASC
     LIMIT 10
 ");
 
-// --- Top-Ten Sponsoren nach Spendensumme (ge deckelt aus spenden_sponsoren) ---
-$top10_sponsoren = hole_top10($conn, "
+// --- Top-Ten Sponsoren nach Spendensumme (jeweiliger Durchlauf) ---
+$top10_sponsoren = hole_liste($conn, "
     SELECT sp.name AS sponsor_name,
-           SUM(ss.spendenbetrag_gesamt) AS summe_gesamt,
-           SUM(ss.spendenbetrag_vormittag) AS summe_vormittag,
-           SUM(ss.spendenbetrag_nachmittag) AS summe_nachmittag
+           SUM(" . $spenden_spalte_sponsoren . ") AS summe
     FROM spenden_sponsoren ss
     JOIN Sponsoren sp ON ss.sponsoren_id = sp.id
     GROUP BY sp.id, sp.name
-    ORDER BY summe_gesamt DESC
+    ORDER BY summe DESC
     LIMIT 10
 ");
 
-// --- Top-Ten Teams nach Spendensumme (ge deckelt aus spenden_teams) ---
-$top10_teams = hole_top10($conn, "
+// --- Top-Ten Teams nach Spendensumme ---
+// Teams: beim Gesamt-Durchlauf die gedeckelte Summe, sonst den jeweiligen Durchlauf.
+if ($durchlauf === 'gesamt') {
+    $teams_summe = 'SUM(st.spendenbetrag_gedeckelt)';
+} else {
+    $teams_summe = 'SUM(' . $spenden_spalte_teams . ')';
+}
+$top10_teams = hole_liste($conn, "
     SELECT t.name AS team_name,
-           SUM(st.spendenbetrag_gesamt) AS summe_gesamt,
-           SUM(st.spendenbetrag_gedeckelt) AS summe_gedeckelt
+           " . $teams_summe . " AS summe
     FROM spenden_teams st
     JOIN Teams t ON st.team_id = t.id
     GROUP BY t.id, t.name
-    ORDER BY summe_gedeckelt DESC
+    ORDER BY summe DESC
     LIMIT 10
 ");
 
-// --- Top-Ten Hauptsponsoren nach Spendensumme (ge deckelt aus spenden_hauptsponsoren) ---
-$top10_hauptsponsoren = hole_top10($conn, "
+// --- Top-Ten Hauptsponsoren nach Spendensumme ---
+if ($durchlauf === 'gesamt') {
+    $hs_summe = 'SUM(sh.spendenbetrag_gedeckelt)';
+} else {
+    $hs_summe = 'SUM(' . $spenden_spalte_hauptsponsoren . ')';
+}
+$top10_hauptsponsoren = hole_liste($conn, "
     SELECT h.name AS hauptsponsor_name,
-           SUM(sh.spendenbetrag_gesamt) AS summe_gesamt,
-           SUM(sh.spendenbetrag_gedeckelt) AS summe_gedeckelt
+           " . $hs_summe . " AS summe
     FROM spenden_hauptsponsoren sh
     JOIN Hauptsponsoren h ON sh.hauptsponsor_id = h.id
     GROUP BY h.id, h.name
-    ORDER BY summe_gedeckelt DESC
+    ORDER BY summe DESC
     LIMIT 10
 ");
 
 // --- Gesamt geschwommene Distanz in km ---
-// Unter 14 Jahre: 25 m pro Bahn, ueber 14 Jahre: 50 m pro Bahn.
-// Distanz (km) = Bahnen * Meter pro Bahn / 1000.
-$distanz_unter14 = hole_top10($conn, "
-    SELECT SUM(s.schwimmleistung_gesamt) AS bahnen_gesamt,
-           SUM(s.schwimmleistung_vormittag) AS bahnen_vormittag,
-           SUM(s.schwimmleistung_nachmittag) AS bahnen_nachmittag
-    FROM Schwimmer s
-    WHERE (" . $aktuelles_jahr . " - s.geburtsjahr) <= 14
-");
-$distanz_ueber14 = hole_top10($conn, "
-    SELECT SUM(s.schwimmleistung_gesamt) AS bahnen_gesamt,
-           SUM(s.schwimmleistung_vormittag) AS bahnen_vormittag,
-           SUM(s.schwimmleistung_nachmittag) AS bahnen_nachmittag
-    FROM Schwimmer s
-    WHERE (" . $aktuelles_jahr . " - s.geburtsjahr) > 14
-");
-
-// Hilfsfunktion: Bahnen -> km, Metadaten je nach Altersgruppe.
-function bahnen_zu_km($bahnen, $meter_pro_bahn) {
-    return ($bahnen !== null && $bahnen > 0) ? ($bahnen * $meter_pro_bahn / 1000.0) : 0.0;
+// Unter 14: 25 m/Bahn, über 14: 50 m/Bahn. km = Bahnen * m/Bahn / 1000.
+// Beim Vormittags-/Nachmittags-Durchlauf nur die jeweilige Leistung.
+if ($durchlauf === 'gesamt') {
+    $dist_unter14 = hole_liste($conn, "
+        SELECT SUM(s.schwimmleistung_gesamt) AS bahnen
+        FROM Schwimmer s WHERE (" . $aktuelles_jahr . " - s.geburtsjahr) <= 14
+    ");
+    $dist_ueber14 = hole_liste($conn, "
+        SELECT SUM(s.schwimmleistung_gesamt) AS bahnen
+        FROM Schwimmer s WHERE (" . $aktuelles_jahr . " - s.geburtsjahr) > 14
+    ");
+    $km_unter14 = ($dist_unter14 && $dist_unter14[0]['bahnen']) ? ($dist_unter14[0]['bahnen'] * 25 / 1000.0) : 0.0;
+    $km_ueber14 = ($dist_ueber14 && $dist_ueber14[0]['bahnen']) ? ($dist_ueber14[0]['bahnen'] * 50 / 1000.0) : 0.0;
+} else {
+    $dist_unter14 = hole_liste($conn, "
+        SELECT SUM(" . $leistung_spalte . ") AS bahnen
+        FROM Schwimmer s WHERE (" . $aktuelles_jahr . " - s.geburtsjahr) <= 14
+    ");
+    $dist_ueber14 = hole_liste($conn, "
+        SELECT SUM(" . $leistung_spalte . ") AS bahnen
+        FROM Schwimmer s WHERE (" . $aktuelles_jahr . " - s.geburtsjahr) > 14
+    ");
+    $km_unter14 = ($dist_unter14 && $dist_unter14[0]['bahnen']) ? ($dist_unter14[0]['bahnen'] * 25 / 1000.0) : 0.0;
+    $km_ueber14 = ($dist_ueber14 && $dist_ueber14[0]['bahnen']) ? ($dist_ueber14[0]['bahnen'] * 50 / 1000.0) : 0.0;
 }
+$km_total = $km_unter14 + $km_ueber14;
 
-$m_unter14 = 25;
-$m_ueber14 = 50;
-
-$km_unter14_vormittag  = bahnen_zu_km($distanz_unter14 ? $distanz_unter14[0]['bahnen_vormittag'] : 0, $m_unter14);
-$km_unter14_nachmittag = bahnen_zu_km($distanz_unter14 ? $distanz_unter14[0]['bahnen_nachmittag'] : 0, $m_unter14);
-$km_unter14_gesamt     = bahnen_zu_km($distanz_unter14 ? $distanz_unter14[0]['bahnen_gesamt'] : 0, $m_unter14);
-
-$km_ueber14_vormittag  = bahnen_zu_km($distanz_ueber14 ? $distanz_ueber14[0]['bahnen_vormittag'] : 0, $m_ueber14);
-$km_ueber14_nachmittag = bahnen_zu_km($distanz_ueber14 ? $distanz_ueber14[0]['bahnen_nachmittag'] : 0, $m_ueber14);
-$km_ueber14_gesamt     = bahnen_zu_km($distanz_ueber14 ? $distanz_ueber14[0]['bahnen_gesamt'] : 0, $m_ueber14);
-
-$km_gesamt_vormittag  = $km_unter14_vormittag + $km_ueber14_vormittag;
-$km_gesamt_nachmittag = $km_unter14_nachmittag + $km_ueber14_nachmittag;
-$km_gesamt            = $km_unter14_gesamt + $km_ueber14_gesamt;
-
-// --- Gesamtsummen der Spenden (ueber alle Eintraege, nicht nur Top-10) ---
-$gesamt_sponsoren = hole_top10($conn, "
-    SELECT SUM(ss.spendenbetrag_gesamt) AS summe_gesamt,
-           SUM(ss.spendenbetrag_vormittag) AS summe_vormittag,
-           SUM(ss.spendenbetrag_nachmittag) AS summe_nachmittag
+// --- Gesamtsummen der Spenden (über alle Einträge) ---
+$gesamt_sponsoren = hole_liste($conn, "
+    SELECT SUM(" . $spenden_spalte_sponsoren . ") AS summe
     FROM spenden_sponsoren ss
 ");
-$gesamt_teams = hole_top10($conn, "
-    SELECT SUM(st.spendenbetrag_gesamt) AS summe_gesamt,
-           SUM(st.spendenbetrag_gedeckelt) AS summe_gedeckelt
-    FROM spenden_teams st
-");
-$gesamt_hauptsponsoren = hole_top10($conn, "
-    SELECT SUM(sh.spendenbetrag_gesamt) AS summe_gesamt,
-           SUM(sh.spendenbetrag_gedeckelt) AS summe_gedeckelt
-    FROM spenden_hauptsponsoren sh
-");
+$g_sp = $gesamt_sponsoren ? $gesamt_sponsoren[0]['summe'] : 0;
 
-$g_sp_vormittag  = $gesamt_sponsoren ? $gesamt_sponsoren[0]['summe_vormittag'] : 0;
-$g_sp_nachmittag = $gesamt_sponsoren ? $gesamt_sponsoren[0]['summe_nachmittag'] : 0;
-$g_sp_gesamt     = $gesamt_sponsoren ? $gesamt_sponsoren[0]['summe_gesamt'] : 0;
-
-$g_t_gesamt     = $gesamt_teams ? $gesamt_teams[0]['summe_gesamt'] : 0;
-$g_t_gedeckelt  = $gesamt_teams ? $gesamt_teams[0]['summe_gedeckelt'] : 0;
-
-$g_h_gesamt     = $gesamt_hauptsponsoren ? $gesamt_hauptsponsoren[0]['summe_gesamt'] : 0;
-$g_h_gedeckelt  = $gesamt_hauptsponsoren ? $gesamt_hauptsponsoren[0]['summe_gedeckelt'] : 0;
-
-// Gesamtsumme aller Spenden (Sponsoren + Teams + Hauptsponsoren).
-$g_total = $g_sp_gesamt + $g_t_gedeckelt + $g_h_gedeckelt;
+if ($durchlauf === 'gesamt') {
+    $gesamt_teams = hole_liste($conn, "SELECT SUM(st.spendenbetrag_gedeckelt) AS summe FROM spenden_teams st");
+    $gesamt_hauptsponsoren = hole_liste($conn, "SELECT SUM(sh.spendenbetrag_gedeckelt) AS summe FROM spenden_hauptsponsoren sh");
+} else {
+    $gesamt_teams = hole_liste($conn, "SELECT SUM(" . $spenden_spalte_teams . ") AS summe FROM spenden_teams st");
+    $gesamt_hauptsponsoren = hole_liste($conn, "SELECT SUM(" . $spenden_spalte_hauptsponsoren . ") AS summe FROM spenden_hauptsponsoren sh");
+}
+$g_t = $gesamt_teams ? $gesamt_teams[0]['summe'] : 0;
+$g_h = $gesamt_hauptsponsoren ? $gesamt_hauptsponsoren[0]['summe'] : 0;
+$g_total = $g_sp + $g_t + $g_h;
 
 // CSV-Export: wenn ?export=csv, Datei direkt zum Download ausliefern.
 // Trenner Semikolon + UTF-8-BOM, damit Excel die Datei mit Umlauten korrekt öffnet.
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
-    $dateiname = 'auswertung_top10_' . date('Y-m-d_His') . '.csv';
+    $dateiname = 'auswertung_' . $durchlauf . '_' . date('Y-m-d_His') . '.csv';
 
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="' . $dateiname . '"');
@@ -175,82 +185,70 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $euro = function($v) { return ($v === null) ? '' : number_format((float)$v, 2, ',', ''); };
     $km = function($v) { return number_format((float)$v, 3, ',', ''); };
 
-    // Gesamt geschwommene Distanz in km
+    fputcsv($out, ['Auswertung – ' . ucfirst($durchlauf)], ';');
+    fputcsv($out, [], ';');
+
+    // Distanz
     fputcsv($out, ['Gesamt geschwommene Distanz (km)'], ';');
-    fputcsv($out, ['Altersgruppe', 'm/Bahn', 'Vormittag (km)', 'Nachmittag (km)', 'Gesamt (km)'], ';');
-    fputcsv($out, ['Unter 14 Jahre', '25', $km($km_unter14_vormittag), $km($km_unter14_nachmittag), $km($km_unter14_gesamt)], ';');
-    fputcsv($out, ['Über 14 Jahre', '50', $km($km_ueber14_vormittag), $km($km_ueber14_nachmittag), $km($km_ueber14_gesamt)], ';');
-    fputcsv($out, ['Gesamt', '', $km($km_gesamt_vormittag), $km($km_gesamt_nachmittag), $km($km_gesamt)], ';');
+    fputcsv($out, ['Altersgruppe', 'm/Bahn', 'Distanz (km)'], ';');
+    fputcsv($out, ['Unter 14 Jahre', '25', $km($km_unter14)], ';');
+    fputcsv($out, ['Über 14 Jahre', '50', $km($km_ueber14)], ';');
+    fputcsv($out, ['Gesamt', '', $km($km_total)], ';');
     fputcsv($out, [], ';');
 
     // Top-Ten Schwimmer über 14 (50m)
     fputcsv($out, ['Top-Ten Schwimmer über 14 Jahre (50m-Bahnen)'], ';');
-    fputcsv($out, ['Platz', 'Startnr.', 'Schwimmer', 'Alter', 'Bahnen Vormittag', 'Bahnen Nachmittag', 'Bahnen Gesamt'], ';');
+    fputcsv($out, ['Platz', 'Startnr.', 'Schwimmer', 'Alter', $leistung_label], ';');
     $platz = 1;
     foreach ($top10_ueber14 as $r) {
-        fputcsv($out, [
-            $platz++, $fmt($r['startnummer']), $r['name'], $fmt($r['alter_jahre']),
-            $fmt($r['schwimmleistung_vormittag']), $fmt($r['schwimmleistung_nachmittag']), $fmt($r['schwimmleistung_gesamt'])
-        ], ';');
+        fputcsv($out, [$platz++, $fmt($r['startnummer']), $r['name'], $fmt($r['alter_jahre']), $fmt($r['leistung'])], ';');
     }
     fputcsv($out, [], ';');
 
     // Top-Ten Schwimmer unter 14 (25m)
     fputcsv($out, ['Top-Ten Schwimmer unter 14 Jahre (25m-Bahnen)'], ';');
-    fputcsv($out, ['Platz', 'Startnr.', 'Schwimmer', 'Alter', 'Bahnen Vormittag', 'Bahnen Nachmittag', 'Bahnen Gesamt'], ';');
+    fputcsv($out, ['Platz', 'Startnr.', 'Schwimmer', 'Alter', $leistung_label], ';');
     $platz = 1;
     foreach ($top10_unter14 as $r) {
-        fputcsv($out, [
-            $platz++, $fmt($r['startnummer']), $r['name'], $fmt($r['alter_jahre']),
-            $fmt($r['schwimmleistung_vormittag']), $fmt($r['schwimmleistung_nachmittag']), $fmt($r['schwimmleistung_gesamt'])
-        ], ';');
+        fputcsv($out, [$platz++, $fmt($r['startnummer']), $r['name'], $fmt($r['alter_jahre']), $fmt($r['leistung'])], ';');
     }
     fputcsv($out, [], ';');
 
     // Top-Ten Sponsoren
     fputcsv($out, ['Top-Ten Sponsoren nach Spendensumme'], ';');
-    fputcsv($out, ['Platz', 'Sponsor', 'Summe Vormittag', 'Summe Nachmittag', 'Summe Gesamt'], ';');
+    fputcsv($out, ['Platz', 'Sponsor', 'Summe'], ';');
     $platz = 1;
     foreach ($top10_sponsoren as $r) {
-        fputcsv($out, [
-            $platz++, $fmt($r['sponsor_name']),
-            $euro($r['summe_vormittag']), $euro($r['summe_nachmittag']), $euro($r['summe_gesamt'])
-        ], ';');
+        fputcsv($out, [$platz++, $fmt($r['sponsor_name']), $euro($r['summe'])], ';');
     }
-    fputcsv($out, ['Gesamtsumme (alle Sponsoren)', '', $euro($g_sp_vormittag), $euro($g_sp_nachmittag), $euro($g_sp_gesamt)], ';');
+    fputcsv($out, ['Gesamtsumme (alle Sponsoren)', '', $euro($g_sp)], ';');
     fputcsv($out, [], ';');
 
     // Top-Ten Teams
     fputcsv($out, ['Top-Ten Teams nach Spendensumme'], ';');
-    fputcsv($out, ['Platz', 'Team', 'Summe gesamt (ungekürzt)', 'Summe gedeckelt'], ';');
+    fputcsv($out, ['Platz', 'Team', 'Summe'], ';');
     $platz = 1;
     foreach ($top10_teams as $r) {
-        fputcsv($out, [
-            $platz++, $fmt($r['team_name']),
-            $euro($r['summe_gesamt']), $euro($r['summe_gedeckelt'])
-        ], ';');
+        fputcsv($out, [$platz++, $fmt($r['team_name']), $euro($r['summe'])], ';');
     }
-    fputcsv($out, ['Gesamtsumme (alle Teams)', '', $euro($g_t_gesamt), $euro($g_t_gedeckelt)], ';');
+    fputcsv($out, ['Gesamtsumme (alle Teams)', '', $euro($g_t)], ';');
     fputcsv($out, [], ';');
 
     // Top-Ten Hauptsponsoren
     fputcsv($out, ['Top-Ten Hauptsponsoren nach Spendensumme'], ';');
-    fputcsv($out, ['Platz', 'Hauptsponsor', 'Summe gesamt (ungekürzt)', 'Summe gedeckelt'], ';');
+    fputcsv($out, ['Platz', 'Hauptsponsor', 'Summe'], ';');
     $platz = 1;
     foreach ($top10_hauptsponsoren as $r) {
-        fputcsv($out, [
-            $platz++, $fmt($r['hauptsponsor_name']),
-            $euro($r['summe_gesamt']), $euro($r['summe_gedeckelt'])
-        ], ';');
+        fputcsv($out, [$platz++, $fmt($r['hauptsponsor_name']), $euro($r['summe'])], ';');
     }
-    fputcsv($out, ['Gesamtsumme (alle Hauptsponsoren)', '', $euro($g_h_gesamt), $euro($g_h_gedeckelt)], ';');
+    fputcsv($out, ['Gesamtsumme (alle Hauptsponsoren)', '', $euro($g_h)], ';');
     fputcsv($out, [], ';');
 
     // Gesamtsumme aller Spenden
     fputcsv($out, ['Gesamtsumme aller Spenden'], ';');
-    fputcsv($out, ['Sponsoren (gesamt)', $euro($g_sp_gesamt)], ';');
-    fputcsv($out, ['Teams (gedeckelt)', $euro($g_t_gedeckelt)], ';');
-    fputcsv($out, ['Hauptsponsoren (gedeckelt)', $euro($g_h_gedeckelt)], ';');
+    fputcsv($out, ['Sponsoren', $euro($g_sp)], ';');
+    fputcsv($out, ['Teams', $euro($g_t)], ';');
+    fputcsv($out, ['Hauptsponsoren', $euro($g_h)], ';');
     fputcsv($out, ['Sponsoren + Teams + Hauptsponsoren', $euro($g_total)], ';');
 
     fclose($out);
@@ -267,22 +265,28 @@ if (file_exists('includes/header.php')) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Auswertungen - VAIBad</title>
+        <title>' . htmlspecialchars($titel) . ' - VAIBad</title>
         <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
     </head>
     <body>';
 }
 ?>
 <div class="container">
-    <h1>Auswertungen (Top Ten)</h1>
+    <h1><?php echo htmlspecialchars($titel); ?> (Top Ten)</h1>
 
     <div class="action-bar">
-        <a href="/VAIBad_2/webapp/auswertungen.php?export=csv" class="btn btn-primary">Als CSV herunterladen</a>
+        <a href="/VAIBad_2/webapp/auswertungen.php?durchlauf=vormittag" class="btn <?php echo ($durchlauf==='vormittag')?'btn-primary':'btn-secondary'; ?>">Vormittag</a>
+        <a href="/VAIBad_2/webapp/auswertungen.php?durchlauf=nachmittag" class="btn <?php echo ($durchlauf==='nachmittag')?'btn-primary':'btn-secondary'; ?>">Nachmittag</a>
+        <a href="/VAIBad_2/webapp/auswertungen.php?durchlauf=gesamt" class="btn <?php echo ($durchlauf==='gesamt')?'btn-primary':'btn-secondary'; ?>">Gesamt</a>
+    </div>
+
+    <div class="action-bar">
+        <a href="/VAIBad_2/webapp/auswertungen.php?durchlauf=<?php echo $durchlauf; ?>&export=csv" class="btn btn-primary">Als CSV herunterladen</a>
         <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
     <?php
-    $hinweis = (empty($top10_sponsoren) || empty($top10_teams) || empty($top10_hauptsponsoren));
+    $hinweis = (empty($top10_sponsoren) && empty($top10_teams) && empty($top10_hauptsponsoren));
     if ($hinweis):
     ?>
         <div class="error-box" style="margin: 1rem 0;">
@@ -305,31 +309,23 @@ if (file_exists('includes/header.php')) {
                 <tr>
                     <th>Altersgruppe</th>
                     <th>m pro Bahn</th>
-                    <th>Vormittag (km)</th>
-                    <th>Nachmittag (km)</th>
-                    <th>Gesamt (km)</th>
+                    <th>Distanz (km)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>Unter 14 Jahre</td>
                     <td>25</td>
-                    <td><?php echo number_format($km_unter14_vormittag, 3, ',', '.'); ?></td>
-                    <td><?php echo number_format($km_unter14_nachmittag, 3, ',', '.'); ?></td>
-                    <td><strong><?php echo number_format($km_unter14_gesamt, 3, ',', '.'); ?></strong></td>
+                    <td><?php echo number_format($km_unter14, 3, ',', '.'); ?></td>
                 </tr>
                 <tr>
                     <td>Über 14 Jahre</td>
                     <td>50</td>
-                    <td><?php echo number_format($km_ueber14_vormittag, 3, ',', '.'); ?></td>
-                    <td><?php echo number_format($km_ueber14_nachmittag, 3, ',', '.'); ?></td>
-                    <td><strong><?php echo number_format($km_ueber14_gesamt, 3, ',', '.'); ?></strong></td>
+                    <td><?php echo number_format($km_ueber14, 3, ',', '.'); ?></td>
                 </tr>
                 <tr style="font-weight: bold; background-color: #f0f0f0;">
                     <td colspan="2">Gesamt</td>
-                    <td><?php echo number_format($km_gesamt_vormittag, 3, ',', '.'); ?></td>
-                    <td><?php echo number_format($km_gesamt_nachmittag, 3, ',', '.'); ?></td>
-                    <td><?php echo number_format($km_gesamt, 3, ',', '.'); ?></td>
+                    <td><?php echo number_format($km_total, 3, ',', '.'); ?></td>
                 </tr>
             </tbody>
         </table>
@@ -345,9 +341,7 @@ if (file_exists('includes/header.php')) {
                     <th>Startnr.</th>
                     <th>Schwimmer</th>
                     <th>Alter</th>
-                    <th>Bahnen Vormittag</th>
-                    <th>Bahnen Nachmittag</th>
-                    <th>Bahnen Gesamt</th>
+                    <th><?php echo htmlspecialchars($leistung_label); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -358,13 +352,11 @@ if (file_exists('includes/header.php')) {
                             <td><?php echo htmlspecialchars($r['startnummer']); ?></td>
                             <td><?php echo htmlspecialchars($r['name']); ?></td>
                             <td><?php echo htmlspecialchars($r['alter_jahre']); ?></td>
-                            <td><?php echo htmlspecialchars($r['schwimmleistung_vormittag']); ?></td>
-                            <td><?php echo htmlspecialchars($r['schwimmleistung_nachmittag']); ?></td>
-                            <td><strong><?php echo htmlspecialchars($r['schwimmleistung_gesamt']); ?></strong></td>
+                            <td><strong><?php echo htmlspecialchars($r['leistung']); ?></strong></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="7" class="no-data">Keine Schwimmer über 14 gefunden.</td></tr>
+                    <tr><td colspan="5" class="no-data">Keine Schwimmer über 14 gefunden.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -380,9 +372,7 @@ if (file_exists('includes/header.php')) {
                     <th>Startnr.</th>
                     <th>Schwimmer</th>
                     <th>Alter</th>
-                    <th>Bahnen Vormittag</th>
-                    <th>Bahnen Nachmittag</th>
-                    <th>Bahnen Gesamt</th>
+                    <th><?php echo htmlspecialchars($leistung_label); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -393,13 +383,11 @@ if (file_exists('includes/header.php')) {
                             <td><?php echo htmlspecialchars($r['startnummer']); ?></td>
                             <td><?php echo htmlspecialchars($r['name']); ?></td>
                             <td><?php echo htmlspecialchars($r['alter_jahre']); ?></td>
-                            <td><?php echo htmlspecialchars($r['schwimmleistung_vormittag']); ?></td>
-                            <td><?php echo htmlspecialchars($r['schwimmleistung_nachmittag']); ?></td>
-                            <td><strong><?php echo htmlspecialchars($r['schwimmleistung_gesamt']); ?></strong></td>
+                            <td><strong><?php echo htmlspecialchars($r['leistung']); ?></strong></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="7" class="no-data">Keine Schwimmer unter 14 gefunden.</td></tr>
+                    <tr><td colspan="5" class="no-data">Keine Schwimmer unter 14 gefunden.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -413,9 +401,7 @@ if (file_exists('includes/header.php')) {
                 <tr>
                     <th>Platz</th>
                     <th>Sponsor</th>
-                    <th>Summe Vormittag</th>
-                    <th>Summe Nachmittag</th>
-                    <th>Summe Gesamt</th>
+                    <th>Summe</th>
                 </tr>
             </thead>
             <tbody>
@@ -424,20 +410,15 @@ if (file_exists('includes/header.php')) {
                         <tr>
                             <td><strong><?php echo $platz++; ?></strong></td>
                             <td><?php echo htmlspecialchars($r['sponsor_name']); ?></td>
-                            <td><?php echo number_format($r['summe_vormittag'], 2, ',', '.'); ?> €</td>
-                            <td><?php echo number_format($r['summe_nachmittag'], 2, ',', '.'); ?> €</td>
-                            <td><strong><?php echo number_format($r['summe_gesamt'], 2, ',', '.'); ?> €</strong></td>
+                            <td><strong><?php echo number_format($r['summe'], 2, ',', '.'); ?> €</strong></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="5" class="no-data">Noch keine Sponsoren-Spenden berechnet.</td></tr>
+                    <tr><td colspan="3" class="no-data">Noch keine Sponsoren-Spenden berechnet.</td></tr>
                 <?php endif; ?>
-                <!-- Gesamtsumme -->
                 <tr style="font-weight: bold; background-color: #f0f0f0;">
                     <td colspan="2">Gesamtsumme (alle Sponsoren)</td>
-                    <td><?php echo number_format($g_sp_vormittag, 2, ',', '.'); ?> €</td>
-                    <td><?php echo number_format($g_sp_nachmittag, 2, ',', '.'); ?> €</td>
-                    <td><?php echo number_format($g_sp_gesamt, 2, ',', '.'); ?> €</td>
+                    <td><?php echo number_format($g_sp, 2, ',', '.'); ?> €</td>
                 </tr>
             </tbody>
         </table>
@@ -451,8 +432,7 @@ if (file_exists('includes/header.php')) {
                 <tr>
                     <th>Platz</th>
                     <th>Team</th>
-                    <th>Summe gesamt (ungekürzt)</th>
-                    <th>Summe gedeckelt</th>
+                    <th>Summe</th>
                 </tr>
             </thead>
             <tbody>
@@ -461,18 +441,15 @@ if (file_exists('includes/header.php')) {
                         <tr>
                             <td><strong><?php echo $platz++; ?></strong></td>
                             <td><?php echo htmlspecialchars($r['team_name']); ?></td>
-                            <td><?php echo number_format($r['summe_gesamt'], 2, ',', '.'); ?> €</td>
-                            <td><strong><?php echo number_format($r['summe_gedeckelt'], 2, ',', '.'); ?> €</strong></td>
+                            <td><strong><?php echo number_format($r['summe'], 2, ',', '.'); ?> €</strong></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="4" class="no-data">Noch keine Team-Spenden berechnet.</td></tr>
+                    <tr><td colspan="3" class="no-data">Noch keine Team-Spenden berechnet.</td></tr>
                 <?php endif; ?>
-                <!-- Gesamtsumme -->
                 <tr style="font-weight: bold; background-color: #f0f0f0;">
                     <td colspan="2">Gesamtsumme (alle Teams)</td>
-                    <td><?php echo number_format($g_t_gesamt, 2, ',', '.'); ?> €</td>
-                    <td><?php echo number_format($g_t_gedeckelt, 2, ',', '.'); ?> €</td>
+                    <td><?php echo number_format($g_t, 2, ',', '.'); ?> €</td>
                 </tr>
             </tbody>
         </table>
@@ -486,8 +463,7 @@ if (file_exists('includes/header.php')) {
                 <tr>
                     <th>Platz</th>
                     <th>Hauptsponsor</th>
-                    <th>Summe gesamt (ungekürzt)</th>
-                    <th>Summe gedeckelt</th>
+                    <th>Summe</th>
                 </tr>
             </thead>
             <tbody>
@@ -496,18 +472,15 @@ if (file_exists('includes/header.php')) {
                         <tr>
                             <td><strong><?php echo $platz++; ?></strong></td>
                             <td><?php echo htmlspecialchars($r['hauptsponsor_name']); ?></td>
-                            <td><?php echo number_format($r['summe_gesamt'], 2, ',', '.'); ?> €</td>
-                            <td><strong><?php echo number_format($r['summe_gedeckelt'], 2, ',', '.'); ?> €</strong></td>
+                            <td><strong><?php echo number_format($r['summe'], 2, ',', '.'); ?> €</strong></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="4" class="no-data">Noch keine Hauptsponsor-Spenden berechnet.</td></tr>
+                    <tr><td colspan="3" class="no-data">Noch keine Hauptsponsor-Spenden berechnet.</td></tr>
                 <?php endif; ?>
-                <!-- Gesamtsumme -->
                 <tr style="font-weight: bold; background-color: #f0f0f0;">
                     <td colspan="2">Gesamtsumme (alle Hauptsponsoren)</td>
-                    <td><?php echo number_format($g_h_gesamt, 2, ',', '.'); ?> €</td>
-                    <td><?php echo number_format($g_h_gedeckelt, 2, ',', '.'); ?> €</td>
+                    <td><?php echo number_format($g_h, 2, ',', '.'); ?> €</td>
                 </tr>
             </tbody>
         </table>
@@ -516,11 +489,11 @@ if (file_exists('includes/header.php')) {
     <!-- Gesamtsumme aller Spenden -->
     <div style="margin-top: 1.5rem; padding: 1rem; background-color: #e8f4e8; border-radius: 4px;">
         <strong>Gesamtsumme aller Spenden (Sponsoren):</strong>
-        <?php echo number_format($g_sp_gesamt, 2, ',', '.'); ?> €<br>
-        <strong>Gesamtsumme aller Spenden (Teams, gedeckelt):</strong>
-        <?php echo number_format($g_t_gedeckelt, 2, ',', '.'); ?> €<br>
-        <strong>Gesamtsumme aller Spenden (Hauptsponsoren, gedeckelt):</strong>
-        <?php echo number_format($g_h_gedeckelt, 2, ',', '.'); ?> €<br><br>
+        <?php echo number_format($g_sp, 2, ',', '.'); ?> €<br>
+        <strong>Gesamtsumme aller Spenden (Teams):</strong>
+        <?php echo number_format($g_t, 2, ',', '.'); ?> €<br>
+        <strong>Gesamtsumme aller Spenden (Hauptsponsoren):</strong>
+        <?php echo number_format($g_h, 2, ',', '.'); ?> €<br><br>
         <strong style="font-size: 1.2rem;">Gesamtsumme aller Spenden (Sponsoren + Teams + Hauptsponsoren):</strong>
         <?php echo number_format($g_total, 2, ',', '.'); ?> €
     </div>

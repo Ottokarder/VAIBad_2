@@ -50,8 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bind_param("ii", $schwimmer_id, $sponsoren_id);
         $stmt->execute();
         $stmt->close();
-        // Weiterleitung zur Schwimmerliste
-        header("Location: /VAIBad_2/webapp/schwimmerliste.php");
+        // Auf der Seite bleiben, damit mehrere Sponsoren nacheinander verknüpft werden können
+        header("Location: /VAIBad_2/webapp/neue_verknuepfung.php?schwimmer_id=" . $schwimmer_id . "&saved=1");
         exit();
     }
 }
@@ -74,6 +74,13 @@ if (file_exists('includes/header.php')) {
 
 <div class="container">
     <h1>Neue Verknüpfung für <?php echo htmlspecialchars($schwimmer['vorname'] . ' ' . $schwimmer['nachname']); ?></h1>
+
+    <!-- Erfolgsmeldung -->
+    <?php if (isset($_GET['saved']) && $_GET['saved'] == '1'): ?>
+        <div class="success-box">
+            Verknüpfung gespeichert. Weitere Sponsoren hinzufügen oder "Fertig" klicken.
+        </div>
+    <?php endif; ?>
 
     <!-- Fehler anzeigen -->
     <?php if (!empty($fehler)): ?>
@@ -106,6 +113,7 @@ if (file_exists('includes/header.php')) {
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Verknüpfung speichern</button>
             <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>
+            <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-primary">Fertig</a>
         </div>
     </form>
 </div>

@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($fehler)) {
         // Team aktualisieren
         $stmt = $conn->prepare("UPDATE Teams SET name = ?, betrag_pro_bahn = ?, `limit` = ? WHERE id = ?");
-        $stmt->bind_param("sdi", $name, $betrag_pro_bahn, $limit, $id);
+        $stmt->bind_param("sdii", $name, $betrag_pro_bahn, $limit, $id);
         $stmt->execute();
         $stmt->close();
 

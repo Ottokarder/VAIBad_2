@@ -30,7 +30,7 @@ if (file_exists('includes/header.php')) {
                 <li><a href="/VAIBad_2/webapp/sponsorenliste.php">Sponsoren</a></li>
                 <li><a href="/VAIBad_2/webapp/hauptsponsorenliste.php">Hauptsponsoren</a></li>
                 <li><a href="/VAIBad_2/webapp/teams.php">Teams</a></li>
-                <li><a href="#">Auswertungen</a></li>
+                <li><a href="/VAIBad_2/webapp/spenden_sponsoren.php">Spenden</a></li>
             </ul>
         </nav>
     </div>
@@ -70,9 +70,10 @@ if (file_exists('includes/header.php')) {
         </div>
 
         <div class="card">
-            <h3>Auswertungen</h3>
-            <p>Sehen Sie sich Statistiken und Auswertungen an.</p>
-            <a href="#" class="btn btn-primary">Zu den Auswertungen</a>
+            <h3>Spenden</h3>
+            <p>Berechnen Sie die Spendenbeträge je Schwimmer und Sponsor.</p>
+            <a href="/VAIBad_2/webapp/spendenberechnung.php" class="btn btn-primary">Spenden berechnen</a>
+            <a href="/VAIBad_2/webapp/spenden_sponsoren.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
         </div>
     </div>
 </div>

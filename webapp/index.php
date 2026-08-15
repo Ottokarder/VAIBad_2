@@ -70,10 +70,16 @@ if (file_exists('includes/header.php')) {
         </div>
 
         <div class="card">
-            <h3>Spenden</h3>
+            <h3>Spenden (Sponsoren)</h3>
             <p>Berechnen Sie die Spendenbeträge je Schwimmer und Sponsor.</p>
             <a href="/VAIBad_2/webapp/spendenberechnung.php" class="btn btn-primary">Spenden berechnen</a>
             <a href="/VAIBad_2/webapp/spenden_sponsoren.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
+        </div>
+        <div class="card">
+            <h3>Spenden (Teams)</h3>
+            <p>Berechnen Sie die Team-Spendenbeträge je Schwimmer mit Limit-Deckelung.</p>
+            <a href="/VAIBad_2/webapp/spendenberechnung_teams.php" class="btn btn-primary">Team-Spenden berechnen</a>
+            <a href="/VAIBad_2/webapp/spenden_teams.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
         </div>
     </div>
 </div>

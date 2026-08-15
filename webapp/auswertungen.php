@@ -91,9 +91,9 @@ $top10_sponsoren = hole_liste($conn, "
 ");
 
 // --- Top-Ten Teams nach Spendensumme ---
-// Teams: beim Gesamt-Durchlauf die gedeckelte Summe, sonst den jeweiligen Durchlauf.
+// Teams: beim Gesamt-Durchlauf spendenbetrag_gesamt (= Vormittag + Nachmittag), sonst den jeweiligen Durchlauf.
 if ($durchlauf === 'gesamt') {
-    $teams_summe = 'SUM(st.spendenbetrag_gedeckelt)';
+    $teams_summe = 'SUM(st.spendenbetrag_gesamt)';
 } else {
     $teams_summe = 'SUM(' . $spenden_spalte_teams . ')';
 }
@@ -109,7 +109,7 @@ $top10_teams = hole_liste($conn, "
 
 // --- Top-Ten Hauptsponsoren nach Spendensumme ---
 if ($durchlauf === 'gesamt') {
-    $hs_summe = 'SUM(sh.spendenbetrag_gedeckelt)';
+    $hs_summe = 'SUM(sh.spendenbetrag_gesamt)';
 } else {
     $hs_summe = 'SUM(' . $spenden_spalte_hauptsponsoren . ')';
 }
@@ -159,8 +159,8 @@ $gesamt_sponsoren = hole_liste($conn, "
 $g_sp = $gesamt_sponsoren ? $gesamt_sponsoren[0]['summe'] : 0;
 
 if ($durchlauf === 'gesamt') {
-    $gesamt_teams = hole_liste($conn, "SELECT SUM(st.spendenbetrag_gedeckelt) AS summe FROM spenden_teams st");
-    $gesamt_hauptsponsoren = hole_liste($conn, "SELECT SUM(sh.spendenbetrag_gedeckelt) AS summe FROM spenden_hauptsponsoren sh");
+    $gesamt_teams = hole_liste($conn, "SELECT SUM(st.spendenbetrag_gesamt) AS summe FROM spenden_teams st");
+    $gesamt_hauptsponsoren = hole_liste($conn, "SELECT SUM(sh.spendenbetrag_gesamt) AS summe FROM spenden_hauptsponsoren sh");
 } else {
     $gesamt_teams = hole_liste($conn, "SELECT SUM(" . $spenden_spalte_teams . ") AS summe FROM spenden_teams st");
     $gesamt_hauptsponsoren = hole_liste($conn, "SELECT SUM(" . $spenden_spalte_hauptsponsoren . ") AS summe FROM spenden_hauptsponsoren sh");

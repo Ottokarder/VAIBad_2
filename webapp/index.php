@@ -31,6 +31,7 @@ if (file_exists('includes/header.php')) {
                 <li><a href="/VAIBad_2/webapp/hauptsponsorenliste.php">Hauptsponsoren</a></li>
                 <li><a href="/VAIBad_2/webapp/teams.php">Teams</a></li>
                 <li><a href="/VAIBad_2/webapp/spenden_sponsoren.php">Spenden</a></li>
+                <li><a href="/VAIBad_2/webapp/auswertungen.php">Auswertungen</a></li>
             </ul>
         </nav>
     </div>
@@ -86,6 +87,11 @@ if (file_exists('includes/header.php')) {
             <p>Jeder Hauptsponsor zahlt für jeden Schwimmer – mit Limit-Deckelung.</p>
             <a href="/VAIBad_2/webapp/spendenberechnung_hauptsponsoren.php" class="btn btn-primary">Hauptsponsor-Spenden berechnen</a>
             <a href="/VAIBad_2/webapp/spenden_hauptsponsoren.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
+        </div>
+        <div class="card">
+            <h3>Auswertungen</h3>
+            <p>Top-Ten-Schwimmer nach Altersgruppen sowie Top-Ten-Sponsoren, -Teams und -Hauptsponsoren.</p>
+            <a href="/VAIBad_2/webapp/auswertungen.php" class="btn btn-primary">Zu den Auswertungen</a>
         </div>
     </div>
 </div>

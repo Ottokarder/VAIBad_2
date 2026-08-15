@@ -110,6 +110,11 @@ if (file_exists('includes/header.php')) {
                                    class="btn btn-link" title="Verknüpfung mit Sponsor">
                                     Verknüpfen
                                 </a>
+                                <!-- Spenden-Button -->
+                                <a href="/VAIBad_2/webapp/schwimmer_spenden.php?schwimmer_id=<?php echo $row['id']; ?>"
+                                   class="btn btn-primary" title="Spenden dieses Schwimmers">
+                                    Spenden
+                                </a>
                                 <!-- Löschen-Button -->
                                 <a href="/VAIBad_2/webapp/schwimmerliste.php?action=delete&id=<?php echo $row['id']; ?>"
                                    class="btn btn-delete"

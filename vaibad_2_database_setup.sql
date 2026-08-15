@@ -49,9 +49,7 @@ CREATE TABLE IF NOT EXISTS Schwimmer (
     schwimmleistung_vormittag INT NOT NULL DEFAULT 0,
     schwimmleistung_nachmittag INT NOT NULL DEFAULT 0,
     schwimmleistung_gesamt INT GENERATED ALWAYS AS (schwimmleistung_vormittag + schwimmleistung_nachmittag) STORED,
-    erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP,
-    team_id INT NULL,
-    FOREIGN KEY (team_id) REFERENCES Teams(id) ON DELETE SET NULL
+    erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabelle schwimmer_sponsor erstellen (Verknüpfungstabelle)
@@ -61,6 +59,15 @@ CREATE TABLE IF NOT EXISTS schwimmer_sponsor (
     sponsoren_id INT NOT NULL,
     FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE,
     FOREIGN KEY (sponsoren_id) REFERENCES Sponsoren(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabelle schwimmer_team erstellen (Verknüpfungstabelle Schwimmer <-> Teams)
+CREATE TABLE IF NOT EXISTS schwimmer_team (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    schwimmer_id INT NOT NULL,
+    team_id INT NOT NULL,
+    FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE,
+    FOREIGN KEY (team_id) REFERENCES Teams(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Optional: Beispiel-Daten einfügen (auskommentiert, falls nicht benötigt)

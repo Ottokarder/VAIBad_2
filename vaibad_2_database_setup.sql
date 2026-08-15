@@ -18,8 +18,9 @@ USE vaibad_2;
 -- Tabelle Hauptsponsoren erstellen
 CREATE TABLE IF NOT EXISTS Hauptsponsoren (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
     betrag_pro_bahn DECIMAL(10, 2) NOT NULL,
-    `limit` INT NOT NULL
+    `limit` INT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabelle Sponsoren erstellen
@@ -106,6 +107,28 @@ CREATE TABLE IF NOT EXISTS spenden_teams (
     erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE INDEX uniq_team_schwimmer_spende (team_id, schwimmer_id),
     FOREIGN KEY (team_id) REFERENCES Teams(id) ON DELETE CASCADE,
+    FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabelle spenden_hauptsponsoren erstellen (Ergebnistabelle der Hauptsponsor-Spendenberechnung)
+-- Jeder Hauptsponsor zahlt für JEDEDN Schwimmer. Pro Hauptsponsor und Schwimmer wird
+-- ein Eintrag berechnet:
+--   spendenbetrag_vormittag   = schwimmleistung_vormittag * betrag_pro_bahn
+--   spendenbetrag_nachmittag  = schwimmleistung_nachmittag * betrag_pro_bahn
+--   spendenbetrag_gesamt     = spendenbetrag_vormittag + spendenbetrag_nachmittag
+-- Das Hauptsponsor-Limit gilt als Maximalbetrag über die Summe aller Schwimmer.
+-- spendenbetrag_gedeckelt enthält den anteilig auf das Limit gekappten Betrag.
+CREATE TABLE IF NOT EXISTS spenden_hauptsponsoren (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    hauptsponsor_id INT NOT NULL,
+    schwimmer_id INT NOT NULL,
+    spendenbetrag_vormittag DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    spendenbetrag_nachmittag DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    spendenbetrag_gesamt DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    spendenbetrag_gedeckelt DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE INDEX uniq_hauptsponsor_schwimmer_spende (hauptsponsor_id, schwimmer_id),
+    FOREIGN KEY (hauptsponsor_id) REFERENCES Hauptsponsoren(id) ON DELETE CASCADE,
     FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

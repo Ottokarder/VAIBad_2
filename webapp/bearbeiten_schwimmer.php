@@ -215,6 +215,49 @@ if (file_exists('includes/header.php')) {
             <p>Keine Sponsoren zugewiesen.</p>
         </div>
     <?php endif; ?>
+
+    <!-- Zugeordnetes Team -->
+    <?php
+    $team_sql = "SELECT id, name, betrag_pro_bahn, `limit` FROM Teams WHERE id = ?";
+    $team_stmt = $conn->prepare($team_sql);
+    $team_stmt->bind_param("i", $schwimmer['team_id']);
+    $team_stmt->execute();
+    $team_result = $team_stmt->get_result();
+    $team_row = $team_result->fetch_assoc();
+    $team_stmt->close();
+    ?>
+    <div class="verknuepfungen-liste">
+        <h3>Zugeordnetes Team</h3>
+        <?php if ($team_row): ?>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Spendensumme pro Bahn (€)</th>
+                        <th>Limit</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><?php echo htmlspecialchars($team_row['name']); ?></td>
+                        <td><?php echo number_format($team_row['betrag_pro_bahn'], 2, ',', '.'); ?></td>
+                        <td>
+                            <?php echo ($team_row['limit'] !== null) ? htmlspecialchars($team_row['limit']) : 'Ohne Limit'; ?>
+                        </td>
+                        <td class="actions">
+                            <a href="/VAIBad_2/webapp/bearbeiten_team.php?id=<?php echo $team_row['id']; ?>"
+                               class="btn btn-edit" title="Team bearbeiten">
+                                Bearbeiten
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p>keinem Team zugeordnet</p>
+        <?php endif; ?>
+    </div>
 </div>
 
 <?php

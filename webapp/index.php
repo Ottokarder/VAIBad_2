@@ -81,6 +81,12 @@ if (file_exists('includes/header.php')) {
             <a href="/VAIBad_2/webapp/spendenberechnung_teams.php" class="btn btn-primary">Team-Spenden berechnen</a>
             <a href="/VAIBad_2/webapp/spenden_teams.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
         </div>
+        <div class="card">
+            <h3>Spenden (Hauptsponsoren)</h3>
+            <p>Jeder Hauptsponsor zahlt für jeden Schwimmer – mit Limit-Deckelung.</p>
+            <a href="/VAIBad_2/webapp/spendenberechnung_hauptsponsoren.php" class="btn btn-primary">Hauptsponsor-Spenden berechnen</a>
+            <a href="/VAIBad_2/webapp/spenden_hauptsponsoren.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
+        </div>
     </div>
 </div>
 

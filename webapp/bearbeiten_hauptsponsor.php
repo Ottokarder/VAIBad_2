@@ -27,18 +27,20 @@ if (!$hauptsponsor) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $name = trim($_POST['name']);
     $betrag_pro_bahn = str_replace(',', '.', trim($_POST['betrag_pro_bahn']));
-    $limit = intval($_POST['limit']);
+    $limit = (isset($_POST['limit']) && $_POST['limit'] != '') ? intval($_POST['limit']) : NULL;
 
     // Validierung
     $fehler = [];
     if (empty($name)) $fehler[] = "Name ist erforderlich.";
     if (!is_numeric($betrag_pro_bahn) || $betrag_pro_bahn <= 0) $fehler[] = "Betrag pro Bahn muss eine positive Zahl sein.";
-    if ($limit <= 0) $fehler[] = "Limit muss größer als 0 sein.";
+    if (isset($_POST['limit']) && $_POST['limit'] != '' && ($limit <= 0)) {
+        $fehler[] = "Limit muss größer als 0 sein.";
+    }
 
     if (empty($fehler)) {
         // Hauptsponsor aktualisieren
         $stmt = $conn->prepare("UPDATE Hauptsponsoren SET name = ?, betrag_pro_bahn = ?, `limit` = ? WHERE id = ?");
-        $stmt->bind_param("sdi", $name, $betrag_pro_bahn, $limit, $id);
+        $stmt->bind_param("sdii", $name, $betrag_pro_bahn, $limit, $id);
         $stmt->execute();
         $stmt->close();
 
@@ -93,9 +95,9 @@ if (file_exists('includes/header.php')) {
         </div>
 
         <div class="form-group">
-            <label for="limit\">Limit:</label>
-            <input type="number" id="limit" name="limit" required
-                   min="1" value="<?php echo htmlspecialchars($hauptsponsor['limit']); ?>">
+            <label for="limit">Limit (optional, leer lassen für kein Limit):</label>
+            <input type="number" id="limit" name="limit"
+                   min="1" value="<?php echo ($hauptsponsor['limit'] !== null) ? htmlspecialchars($hauptsponsor['limit']) : ''; ?>">
         </div>
 
         <div class="form-actions">

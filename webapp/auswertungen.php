@@ -128,6 +128,34 @@ $km_gesamt_vormittag  = $km_unter14_vormittag + $km_ueber14_vormittag;
 $km_gesamt_nachmittag = $km_unter14_nachmittag + $km_ueber14_nachmittag;
 $km_gesamt            = $km_unter14_gesamt + $km_ueber14_gesamt;
 
+// --- Gesamtsummen der Spenden (ueber alle Eintraege, nicht nur Top-10) ---
+$gesamt_sponsoren = hole_top10($conn, "
+    SELECT SUM(ss.spendenbetrag_gesamt) AS summe_gesamt,
+           SUM(ss.spendenbetrag_vormittag) AS summe_vormittag,
+           SUM(ss.spendenbetrag_nachmittag) AS summe_nachmittag
+    FROM spenden_sponsoren ss
+");
+$gesamt_teams = hole_top10($conn, "
+    SELECT SUM(st.spendenbetrag_gesamt) AS summe_gesamt,
+           SUM(st.spendenbetrag_gedeckelt) AS summe_gedeckelt
+    FROM spenden_teams st
+");
+$gesamt_hauptsponsoren = hole_top10($conn, "
+    SELECT SUM(sh.spendenbetrag_gesamt) AS summe_gesamt,
+           SUM(sh.spendenbetrag_gedeckelt) AS summe_gedeckelt
+    FROM spenden_hauptsponsoren sh
+");
+
+$g_sp_vormittag  = $gesamt_sponsoren ? $gesamt_sponsoren[0]['summe_vormittag'] : 0;
+$g_sp_nachmittag = $gesamt_sponsoren ? $gesamt_sponsoren[0]['summe_nachmittag'] : 0;
+$g_sp_gesamt     = $gesamt_sponsoren ? $gesamt_sponsoren[0]['summe_gesamt'] : 0;
+
+$g_t_gesamt     = $gesamt_teams ? $gesamt_teams[0]['summe_gesamt'] : 0;
+$g_t_gedeckelt  = $gesamt_teams ? $gesamt_teams[0]['summe_gedeckelt'] : 0;
+
+$g_h_gesamt     = $gesamt_hauptsponsoren ? $gesamt_hauptsponsoren[0]['summe_gesamt'] : 0;
+$g_h_gedeckelt  = $gesamt_hauptsponsoren ? $gesamt_hauptsponsoren[0]['summe_gedeckelt'] : 0;
+
 // CSV-Export: wenn ?export=csv, Datei direkt zum Download ausliefern.
 // Trenner Semikolon + UTF-8-BOM, damit Excel die Datei mit Umlauten korrekt öffnet.
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
@@ -186,6 +214,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $euro($r['summe_vormittag']), $euro($r['summe_nachmittag']), $euro($r['summe_gesamt'])
         ], ';');
     }
+    fputcsv($out, ['Gesamtsumme (alle Sponsoren)', '', $euro($g_sp_vormittag), $euro($g_sp_nachmittag), $euro($g_sp_gesamt)], ';');
     fputcsv($out, [], ';');
 
     // Top-Ten Teams
@@ -198,6 +227,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $euro($r['summe_gesamt']), $euro($r['summe_gedeckelt'])
         ], ';');
     }
+    fputcsv($out, ['Gesamtsumme (alle Teams)', '', $euro($g_t_gesamt), $euro($g_t_gedeckelt)], ';');
     fputcsv($out, [], ';');
 
     // Top-Ten Hauptsponsoren
@@ -210,6 +240,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $euro($r['summe_gesamt']), $euro($r['summe_gedeckelt'])
         ], ';');
     }
+    fputcsv($out, ['Gesamtsumme (alle Hauptsponsoren)', '', $euro($g_h_gesamt), $euro($g_h_gedeckelt)], ';');
+    fputcsv($out, [], ';');
+
+    // Gesamtsumme aller Spenden
+    fputcsv($out, ['Gesamtsumme aller Spenden'], ';');
+    fputcsv($out, ['Sponsoren (gesamt)', $euro($g_sp_gesamt)], ';');
+    fputcsv($out, ['Teams (gedeckelt)', $euro($g_t_gedeckelt)], ';');
+    fputcsv($out, ['Hauptsponsoren (gedeckelt)', $euro($g_h_gedeckelt)], ';');
 
     fclose($out);
     $conn->close();
@@ -390,6 +428,13 @@ if (file_exists('includes/header.php')) {
                 <?php else: ?>
                     <tr><td colspan="5" class="no-data">Noch keine Sponsoren-Spenden berechnet.</td></tr>
                 <?php endif; ?>
+                <!-- Gesamtsumme -->
+                <tr style="font-weight: bold; background-color: #f0f0f0;">
+                    <td colspan="2">Gesamtsumme (alle Sponsoren)</td>
+                    <td><?php echo number_format($g_sp_vormittag, 2, ',', '.'); ?> €</td>
+                    <td><?php echo number_format($g_sp_nachmittag, 2, ',', '.'); ?> €</td>
+                    <td><?php echo number_format($g_sp_gesamt, 2, ',', '.'); ?> €</td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -419,6 +464,12 @@ if (file_exists('includes/header.php')) {
                 <?php else: ?>
                     <tr><td colspan="4" class="no-data">Noch keine Team-Spenden berechnet.</td></tr>
                 <?php endif; ?>
+                <!-- Gesamtsumme -->
+                <tr style="font-weight: bold; background-color: #f0f0f0;">
+                    <td colspan="2">Gesamtsumme (alle Teams)</td>
+                    <td><?php echo number_format($g_t_gesamt, 2, ',', '.'); ?> €</td>
+                    <td><?php echo number_format($g_t_gedeckelt, 2, ',', '.'); ?> €</td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -448,8 +499,24 @@ if (file_exists('includes/header.php')) {
                 <?php else: ?>
                     <tr><td colspan="4" class="no-data">Noch keine Hauptsponsor-Spenden berechnet.</td></tr>
                 <?php endif; ?>
+                <!-- Gesamtsumme -->
+                <tr style="font-weight: bold; background-color: #f0f0f0;">
+                    <td colspan="2">Gesamtsumme (alle Hauptsponsoren)</td>
+                    <td><?php echo number_format($g_h_gesamt, 2, ',', '.'); ?> €</td>
+                    <td><?php echo number_format($g_h_gedeckelt, 2, ',', '.'); ?> €</td>
+                </tr>
             </tbody>
         </table>
+    </div>
+
+    <!-- Gesamtsumme aller Spenden -->
+    <div style="margin-top: 1.5rem; padding: 1rem; background-color: #e8f4e8; border-radius: 4px;">
+        <strong>Gesamtsumme aller Spenden (Sponsoren):</strong>
+        <?php echo number_format($g_sp_gesamt, 2, ',', '.'); ?> €<br>
+        <strong>Gesamtsumme aller Spenden (Teams, gedeckelt):</strong>
+        <?php echo number_format($g_t_gedeckelt, 2, ',', '.'); ?> €<br>
+        <strong>Gesamtsumme aller Spenden (Hauptsponsoren, gedeckelt):</strong>
+        <?php echo number_format($g_h_gedeckelt, 2, ',', '.'); ?> €
     </div>
 </div>
 <?php

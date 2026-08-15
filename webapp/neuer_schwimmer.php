@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $schwimmleistung_vormittag = isset($_POST['schwimmleistung_vormittag']) ? max(0, intval($_POST['schwimmleistung_vormittag'])) : 0;
     $schwimmleistung_nachmittag = isset($_POST['schwimmleistung_nachmittag']) ? max(0, intval($_POST['schwimmleistung_nachmittag'])) : 0;
     $startnummer_input = isset($_POST['startnummer']) ? trim($_POST['startnummer']) : '';
+    $team_id_input = isset($_POST['team_id']) ? trim($_POST['team_id']) : '';
 
     // Validierung
     $fehler = [];
@@ -43,9 +44,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $row = $res->fetch_assoc();
             $startnummer = intval($row['next_nr']);
         }
+        // Team-Zuordnung (optional)
+        $team_id = null;
+        if ($team_id_input !== '') {
+            $team_id = intval($team_id_input);
+            $team_check = $conn->prepare("SELECT id FROM Teams WHERE id = ?");
+            $team_check->bind_param("i", $team_id);
+            $team_check->execute();
+            $team_check->store_result();
+            if ($team_check->num_rows === 0) {
+                $team_id = null;
+            }
+            $team_check->close();
+        }
         // Schwimmer in die Datenbank einfügen
-        $stmt = $conn->prepare("INSERT INTO Schwimmer (startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("issiii", $startnummer, $vorname, $nachname, $geburtsjahr, $schwimmleistung_vormittag, $schwimmleistung_nachmittag);
+        $stmt = $conn->prepare("INSERT INTO Schwimmer (startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag, team_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("issiiii", $startnummer, $vorname, $nachname, $geburtsjahr, $schwimmleistung_vormittag, $schwimmleistung_nachmittag, $team_id);
         $stmt->execute();
         $stmt->close();
         // Weiterleitung zur Schwimmerliste
@@ -108,6 +122,22 @@ if (file_exists('includes/header.php')) {
                    value="<?php echo isset($startnummer_input) ? htmlspecialchars($startnummer_input) : ''; ?>"
                    placeholder="automatisch">
             <small>Beim Anlegen festgelegt, danach nicht mehr änderbar.</small>
+        </div>
+        <div class="form-group">
+            <label for="team_id">Team (optional):</label>
+            <select id="team_id" name="team_id">
+                <option value="">Kein Team</option>
+                <?php
+                $teams_res = $conn->query("SELECT id, name FROM Teams ORDER BY name");
+                if ($teams_res) {
+                    while ($t = $teams_res->fetch_assoc()) {
+                        $sel = (isset($team_id_input) && $team_id_input !== '' && intval($team_id_input) === intval($t['id'])) ? ' selected' : '';
+                        echo '<option value="' . htmlspecialchars($t['id']) . '"' . $sel . '>' . htmlspecialchars($t['name']) . '</option>';
+                    }
+                }
+                ?>
+            </select>
+            <small>Ein Schwimmer kann einem Team zugeordnet sein, muss aber nicht.</small>
         </div>
         <div class="form-group">
             <label for="schwimmleistung_vormittag">Schwimmleistung Vormittag (Bahnen):</label>

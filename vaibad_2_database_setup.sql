@@ -30,7 +30,16 @@ CREATE TABLE IF NOT EXISTS Sponsoren (
     `limit` INT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Tabelle Schwimmer erstellen (mit Startnummer und getrennten Durchläufen)
+-- Tabelle Teams erstellen
+CREATE TABLE IF NOT EXISTS Teams (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    betrag_pro_bahn DECIMAL(10, 2) NOT NULL,
+    `limit` INT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabelle Schwimmer erstellen (mit Startnummer, getrennten Durchläufen und Team-Zuordnung)
+-- Ein Schwimmer kann einem Team zugeordnet sein, muss aber nicht (team_id ist NULL erlaubt).
 CREATE TABLE IF NOT EXISTS Schwimmer (
     id INT AUTO_INCREMENT PRIMARY KEY,
     startnummer INT UNIQUE,
@@ -40,7 +49,9 @@ CREATE TABLE IF NOT EXISTS Schwimmer (
     schwimmleistung_vormittag INT NOT NULL DEFAULT 0,
     schwimmleistung_nachmittag INT NOT NULL DEFAULT 0,
     schwimmleistung_gesamt INT GENERATED ALWAYS AS (schwimmleistung_vormittag + schwimmleistung_nachmittag) STORED,
-    erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP
+    erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP,
+    team_id INT NULL,
+    FOREIGN KEY (team_id) REFERENCES Teams(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabelle schwimmer_sponsor erstellen (Verknüpfungstabelle)

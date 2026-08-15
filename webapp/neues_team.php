@@ -76,7 +76,7 @@ if (file_exists('includes/header.php')) {
         <div class="form-group">
             <label for="limit">Limit (optional, leer lassen für kein Limit):</label>
             <input type="number" id="limit" name="limit"
-                   min="1" value="<?php echo isset($limit) ? $limit : ''; ?>">
+                   min="1" value="<?php echo isset($limit) ? htmlspecialchars($limit) : ''; ?>">
         </div>
 
         <div class="form-actions">

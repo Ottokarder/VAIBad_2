@@ -16,8 +16,12 @@ USE vaibad_2;
 SET @tbl_exists := (SELECT COUNT(*) FROM information_schema.TABLES
     WHERE TABLE_SCHEMA = 'vaibad_2' AND TABLE_NAME = 'Teams');
 SET @sql := IF(@tbl_exists = 0,
-    'CREATE TABLE Teams (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(200) NOT NULL, betrag_pro_bahn DECIMAL(10, 2) NOT NULL, `limit` INT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+    'CREATE TABLE Teams (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(200) NOT NULL, betrag_pro_bahn DECIMAL(10, 2) NOT NULL, `limit` INT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
     'SELECT "Tabelle Teams existiert bereits" AS info');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Falls die Tabelle bereits mit NOT NULL angelegt wurde: limit auf NULL-fähig setzen.
+SET @sql := 'ALTER TABLE Teams MODIFY COLUMN `limit` INT NULL';
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- -------------------------------------------------------------------

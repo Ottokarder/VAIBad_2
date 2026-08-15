@@ -151,6 +151,11 @@ if ($durchlauf === 'gesamt') {
 }
 $km_total = $km_unter14 + $km_ueber14;
 
+// Anzahl der Bahnen, die der Distanzberechnung zugrunde liegen.
+$bahnen_unter14 = ($dist_unter14 && $dist_unter14[0]['bahnen']) ? (int)$dist_unter14[0]['bahnen'] : 0;
+$bahnen_ueber14 = ($dist_ueber14 && $dist_ueber14[0]['bahnen']) ? (int)$dist_ueber14[0]['bahnen'] : 0;
+$bahnen_total = $bahnen_unter14 + $bahnen_ueber14;
+
 // --- Gesamtsummen der Spenden (über alle Einträge) ---
 $gesamt_sponsoren = hole_liste($conn, "
     SELECT SUM(" . $spenden_spalte_sponsoren . ") AS summe
@@ -190,10 +195,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
     // Distanz
     fputcsv($out, ['Gesamt geschwommene Distanz (km)'], ';');
-    fputcsv($out, ['Altersgruppe', 'm/Bahn', 'Distanz (km)'], ';');
-    fputcsv($out, ['Unter 14 Jahre', '25', $km($km_unter14)], ';');
-    fputcsv($out, ['Über 14 Jahre', '50', $km($km_ueber14)], ';');
-    fputcsv($out, ['Gesamt', '', $km($km_total)], ';');
+    fputcsv($out, ['Altersgruppe', 'm/Bahn', 'Anzahl Bahnen', 'Distanz (km)'], ';');
+    fputcsv($out, ['Unter 14 Jahre (25m)', '25', $bahnen_unter14, $km($km_unter14)], ';');
+    fputcsv($out, ['Über 14 Jahre (50m)', '50', $bahnen_ueber14, $km($km_ueber14)], ';');
+    fputcsv($out, ['Gesamt', '', $bahnen_total, $km($km_total)], ';');
     fputcsv($out, [], ';');
 
     // Top-Ten Schwimmer über 14 (50m)
@@ -309,22 +314,26 @@ if (file_exists('includes/header.php')) {
                 <tr>
                     <th>Altersgruppe</th>
                     <th>m pro Bahn</th>
+                    <th>Anzahl Bahnen</th>
                     <th>Distanz (km)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td>Unter 14 Jahre</td>
+                    <td>Unter 14 Jahre (25m)</td>
                     <td>25</td>
+                    <td><?php echo number_format($bahnen_unter14, 0, '', '.'); ?></td>
                     <td><?php echo number_format($km_unter14, 3, ',', '.'); ?></td>
                 </tr>
                 <tr>
-                    <td>Über 14 Jahre</td>
+                    <td>Über 14 Jahre (50m)</td>
                     <td>50</td>
+                    <td><?php echo number_format($bahnen_ueber14, 0, '', '.'); ?></td>
                     <td><?php echo number_format($km_ueber14, 3, ',', '.'); ?></td>
                 </tr>
                 <tr style="font-weight: bold; background-color: #f0f0f0;">
                     <td colspan="2">Gesamt</td>
+                    <td><?php echo number_format($bahnen_total, 0, '', '.'); ?></td>
                     <td><?php echo number_format($km_total, 3, ',', '.'); ?></td>
                 </tr>
             </tbody>

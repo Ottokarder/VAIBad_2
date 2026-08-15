@@ -30,7 +30,16 @@ CREATE TABLE IF NOT EXISTS Sponsoren (
     `limit` INT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Tabelle Schwimmer erstellen (mit Startnummer und getrennten Durchläufen)
+-- Tabelle Teams erstellen
+CREATE TABLE IF NOT EXISTS Teams (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    betrag_pro_bahn DECIMAL(10, 2) NOT NULL,
+    `limit` INT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabelle Schwimmer erstellen (mit Startnummer, getrennten Durchläufen und Team-Zuordnung)
+-- Ein Schwimmer kann einem Team zugeordnet sein, muss aber nicht (team_id ist NULL erlaubt).
 CREATE TABLE IF NOT EXISTS Schwimmer (
     id INT AUTO_INCREMENT PRIMARY KEY,
     startnummer INT UNIQUE,
@@ -50,6 +59,15 @@ CREATE TABLE IF NOT EXISTS schwimmer_sponsor (
     sponsoren_id INT NOT NULL,
     FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE,
     FOREIGN KEY (sponsoren_id) REFERENCES Sponsoren(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabelle schwimmer_team erstellen (Verknüpfungstabelle Schwimmer <-> Teams)
+CREATE TABLE IF NOT EXISTS schwimmer_team (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    schwimmer_id INT NOT NULL,
+    team_id INT NOT NULL,
+    FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE,
+    FOREIGN KEY (team_id) REFERENCES Teams(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Optional: Beispiel-Daten einfügen (auskommentiert, falls nicht benötigt)

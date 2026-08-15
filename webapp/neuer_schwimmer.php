@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $schwimmleistung_vormittag = isset($_POST['schwimmleistung_vormittag']) ? max(0, intval($_POST['schwimmleistung_vormittag'])) : 0;
     $schwimmleistung_nachmittag = isset($_POST['schwimmleistung_nachmittag']) ? max(0, intval($_POST['schwimmleistung_nachmittag'])) : 0;
     $startnummer_input = isset($_POST['startnummer']) ? trim($_POST['startnummer']) : '';
+    $team_ids_input = isset($_POST['team_ids']) ? $_POST['team_ids'] : [];
 
     // Validierung
     $fehler = [];
@@ -47,7 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt = $conn->prepare("INSERT INTO Schwimmer (startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("issiii", $startnummer, $vorname, $nachname, $geburtsjahr, $schwimmleistung_vormittag, $schwimmleistung_nachmittag);
         $stmt->execute();
+        $neuer_schwimmer_id = $stmt->insert_id;
         $stmt->close();
+        // Team-Zuordnungen (mehrfach möglich)
+        if (!empty($team_ids_input)) {
+            $team_insert = $conn->prepare("INSERT IGNORE INTO schwimmer_team (schwimmer_id, team_id) VALUES (?, ?)");
+            foreach ($team_ids_input as $tid) {
+                $tid_int = intval($tid);
+                if ($tid_int > 0) {
+                    $team_insert->bind_param("ii", $neuer_schwimmer_id, $tid_int);
+                    $team_insert->execute();
+                }
+            }
+            $team_insert->close();
+        }
         // Weiterleitung zur Schwimmerliste
         header("Location: /VAIBad_2/webapp/schwimmerliste.php");
         exit();
@@ -108,6 +122,22 @@ if (file_exists('includes/header.php')) {
                    value="<?php echo isset($startnummer_input) ? htmlspecialchars($startnummer_input) : ''; ?>"
                    placeholder="automatisch">
             <small>Beim Anlegen festgelegt, danach nicht mehr änderbar.</small>
+        </div>
+        <div class="form-group">
+            <label for="team_ids">Teams (optional, Mehrfachauswahl möglich):</label>
+            <select id="team_ids" name="team_ids[]" multiple size="5">
+                <?php
+                $teams_res = $conn->query("SELECT id, name FROM Teams ORDER BY name");
+                if ($teams_res) {
+                    $gewaehlt = isset($team_ids_input) ? array_map('intval', $team_ids_input) : [];
+                    while ($t = $teams_res->fetch_assoc()) {
+                        $sel = in_array(intval($t['id']), $gewaehlt, true) ? ' selected' : '';
+                        echo '<option value="' . htmlspecialchars($t['id']) . '"' . $sel . '>' . htmlspecialchars($t['name']) . '</option>';
+                    }
+                }
+                ?>
+            </select>
+            <small>Mehrere Teams mit gedrückter Strg-/Cmd-Taste auswählen. Ein Schwimmer kann für mehrere Teams schwimmen.</small>
         </div>
         <div class="form-group">
             <label for="schwimmleistung_vormittag">Schwimmleistung Vormittag (Bahnen):</label>

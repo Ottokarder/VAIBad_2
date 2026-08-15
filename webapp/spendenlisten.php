@@ -11,7 +11,7 @@ require_once 'config.php';
 $sponsoren_sql = "
     SELECT sp.id AS gruppe_id, sp.name AS gruppe_name, NULL AS gruppe_limit,
            sw.startnummer, CONCAT(sw.vorname, ' ', sw.nachname) AS schwimmer_name,
-           ss.spendenbetrag_vormittag, ss.spendenbetrag_nachmittag, ss.spendenbetrag_gesamt,
+           ss.spendenbetrag_vormittag, ss.spendenbetrag_nachmittag,
            ss.spendenbetrag_gesamt AS betrag_gedeckelt,
            ss.erstelldatum
     FROM spenden_sponsoren ss
@@ -24,7 +24,7 @@ $sponsoren_sql = "
 $teams_sql = "
     SELECT t.id AS gruppe_id, t.name AS gruppe_name, t.`limit` AS gruppe_limit,
            sw.startnummer, CONCAT(sw.vorname, ' ', sw.nachname) AS schwimmer_name,
-           st.spendenbetrag_vormittag, st.spendenbetrag_nachmittag, st.spendenbetrag_gesamt,
+           st.spendenbetrag_vormittag, st.spendenbetrag_nachmittag,
            st.spendenbetrag_gedeckelt AS betrag_gedeckelt,
            st.erstelldatum
     FROM spenden_teams st
@@ -37,7 +37,7 @@ $teams_sql = "
 $hauptsponsoren_sql = "
     SELECT h.id AS gruppe_id, h.name AS gruppe_name, h.`limit` AS gruppe_limit,
            sw.startnummer, CONCAT(sw.vorname, ' ', sw.nachname) AS schwimmer_name,
-           sh.spendenbetrag_vormittag, sh.spendenbetrag_nachmittag, sh.spendenbetrag_gesamt,
+           sh.spendenbetrag_vormittag, sh.spendenbetrag_nachmittag,
            sh.spendenbetrag_gedeckelt AS betrag_gedeckelt,
            sh.erstelldatum
     FROM spenden_hauptsponsoren sh
@@ -49,7 +49,6 @@ $hauptsponsoren_sql = "
 // Hilfsfunktion: Ergebnis gruppieren und Summen bilden.
 function gruppiere($conn, $sql) {
     $gruppen = [];
-    $gesamt_gesamt = 0.0;
     $gesamt_gedeckelt = 0.0;
     $res = $conn->query($sql);
     if ($res && $res->num_rows > 0) {
@@ -62,26 +61,23 @@ function gruppiere($conn, $sql) {
                     'zeilen' => [],
                     'sum_vormittag'  => 0.0,
                     'sum_nachmittag' => 0.0,
-                    'sum_gesamt'     => 0.0,
                     'sum_gedeckelt'  => 0.0,
                 ];
             }
             $gruppen[$gid]['zeilen'][] = $row;
             $gruppen[$gid]['sum_vormittag']  += (float)$row['spendenbetrag_vormittag'];
             $gruppen[$gid]['sum_nachmittag'] += (float)$row['spendenbetrag_nachmittag'];
-            $gruppen[$gid]['sum_gesamt']     += (float)$row['spendenbetrag_gesamt'];
             $gruppen[$gid]['sum_gedeckelt']  += (float)$row['betrag_gedeckelt'];
-            $gesamt_gesamt    += (float)$row['spendenbetrag_gesamt'];
             $gesamt_gedeckelt += (float)$row['betrag_gedeckelt'];
         }
         $res->free();
     }
-    return [$gruppen, $gesamt_gesamt, $gesamt_gedeckelt];
+    return [$gruppen, $gesamt_gedeckelt];
 }
 
-list($sponsoren, $sp_gesamt, $sp_gedeckelt) = gruppiere($conn, $sponsoren_sql);
-list($teams, $t_gesamt, $t_gedeckelt) = gruppiere($conn, $teams_sql);
-list($hauptsponsoren, $h_gesamt, $h_gedeckelt) = gruppiere($conn, $hauptsponsoren_sql);
+list($sponsoren, $sp_gesamt) = gruppiere($conn, $sponsoren_sql);
+list($teams, $t_gedeckelt) = gruppiere($conn, $teams_sql);
+list($hauptsponsoren, $h_gedeckelt) = gruppiere($conn, $hauptsponsoren_sql);
 
 // CSV-Export: wenn ?export=csv, Datei direkt zum Download ausliefern.
 // Trenner Semikolon + UTF-8-BOM, damit Excel die Datei mit Umlauten korrekt öffnet.
@@ -96,38 +92,38 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     fwrite($out, "\xEF\xBB\xBF"); // UTF-8-BOM für Excel
     $euro = function($v) { return ($v === null) ? '' : number_format((float)$v, 2, ',', ''); };
 
-    $schreibe_abschnitt = function($titel, $gruppen, $gesamt_gesamt, $gesamt_gedeckelt) use ($out, $euro) {
+    $schreibe_abschnitt = function($titel, $gruppen, $gesamt_gedeckelt) use ($out, $euro) {
         fputcsv($out, [$titel], ';');
         fputcsv($out, ['Sponsor/Team/Hauptsponsor', 'Startnr.', 'Schwimmer',
-            'Vormittag', 'Nachmittag', 'Gesamt', 'gedeckelt'], ';');
+            'Vormittag', 'Nachmittag', 'Betrag'], ';');
         foreach ($gruppen as $g) {
             foreach ($g['zeilen'] as $r) {
                 fputcsv($out, [
                     $r['gruppe_name'], $r['startnummer'], $r['schwimmer_name'],
                     $euro($r['spendenbetrag_vormittag']), $euro($r['spendenbetrag_nachmittag']),
-                    $euro($r['spendenbetrag_gesamt']), $euro($r['betrag_gedeckelt'])
+                    $euro($r['betrag_gedeckelt'])
                 ], ';');
             }
             fputcsv($out, [
                 $g['name'] . ' - Summe', '', '',
                 $euro($g['sum_vormittag']), $euro($g['sum_nachmittag']),
-                $euro($g['sum_gesamt']), $euro($g['sum_gedeckelt'])
+                $euro($g['sum_gedeckelt'])
             ], ';');
         }
-        fputcsv($out, ['Gesamtsumme', '', '', '', '', $euro($gesamt_gesamt), $euro($gesamt_gedeckelt)], ';');
+        fputcsv($out, ['Gesamtsumme', '', '', '', '', $euro($gesamt_gedeckelt)], ';');
         fputcsv($out, [], ';');
     };
 
-    $schreibe_abschnitt('Sponsoren', $sponsoren, $sp_gesamt, $sp_gedeckelt);
-    $schreibe_abschnitt('Teams', $teams, $t_gesamt, $t_gedeckelt);
-    $schreibe_abschnitt('Hauptsponsoren', $hauptsponsoren, $h_gesamt, $h_gedeckelt);
+    $schreibe_abschnitt('Sponsoren', $sponsoren, $sp_gesamt);
+    $schreibe_abschnitt('Teams', $teams, $t_gedeckelt);
+    $schreibe_abschnitt('Hauptsponsoren', $hauptsponsoren, $h_gedeckelt);
 
     // Gesamtsumme über alle drei Listen
     fputcsv($out, ['Gesamtsumme aller Spenden'], ';');
-    fputcsv($out, ['Sponsoren (gesamt)', $euro($sp_gesamt)], ';');
-    fputcsv($out, ['Teams (gesamt)', $euro($t_gesamt)], ';');
-    fputcsv($out, ['Hauptsponsoren (gesamt)', $euro($h_gesamt)], ';');
-    fputcsv($out, ['Sponsoren + Teams + Hauptsponsoren', $euro($sp_gesamt + $t_gesamt + $h_gesamt)], ';');
+    fputcsv($out, ['Sponsoren', $euro($sp_gesamt)], ';');
+    fputcsv($out, ['Teams', $euro($t_gedeckelt)], ';');
+    fputcsv($out, ['Hauptsponsoren', $euro($h_gedeckelt)], ';');
+    fputcsv($out, ['Sponsoren + Teams + Hauptsponsoren', $euro($sp_gesamt + $t_gedeckelt + $h_gedeckelt)], ';');
 
     fclose($out);
     $conn->close();
@@ -150,26 +146,26 @@ if (file_exists('includes/header.php')) {
 }
 
 // Hilfsfunktion: einen Listen-Abschnitt als HTML-Tabelle ausgeben.
-function zeige_abschnitt($titel, $gruppen, $gesamt_gesamt, $gesamt_gedeckelt) {
+function zeige_abschnitt($titel, $gruppen, $gesamt_gedeckelt) {
     echo '<h2 style="margin-top: 2rem;">' . htmlspecialchars($titel) . '</h2>';
     if (empty($gruppen)) {
         echo '<div class="table-container"><table class="data-table"><thead><tr>
                 <th>Name</th><th>Startnr.</th><th>Schwimmer</th>
-                <th>Vormittag</th><th>Nachmittag</th><th>Gesamt</th><th>gedeckelt</th>
+                <th>Vormittag</th><th>Nachmittag</th><th>Betrag</th>
               </tr></thead><tbody>
-              <tr><td colspan="7" class="no-data">Noch keine Daten. Bitte zuerst die Spendenberechnung durchführen.</td></tr>
+              <tr><td colspan="6" class="no-data">Noch keine Daten. Bitte zuerst die Spendenberechnung durchführen.</td></tr>
               </tbody></table></div>';
         return;
     }
     echo '<div class="table-container"><table class="data-table">
         <thead><tr>
             <th>Name</th><th>Startnr.</th><th>Schwimmer</th>
-            <th>Vormittag</th><th>Nachmittag</th><th>Gesamt</th><th>gedeckelt</th>
+            <th>Vormittag</th><th>Nachmittag</th><th>Betrag</th>
         </tr></thead><tbody>';
     foreach ($gruppen as $g) {
         $limit_txt = ($g['limit'] !== null) ? ' (Limit: ' . htmlspecialchars($g['limit']) . ' €)' : '';
         echo '<tr style="font-weight: bold; background-color: #e8e8e8;">';
-        echo '<td colspan="7">' . htmlspecialchars($g['name']) . $limit_txt . '</td>';
+        echo '<td colspan="6">' . htmlspecialchars($g['name']) . $limit_txt . '</td>';
         echo '</tr>';
         foreach ($g['zeilen'] as $r) {
             echo '<tr>';
@@ -178,7 +174,6 @@ function zeige_abschnitt($titel, $gruppen, $gesamt_gesamt, $gesamt_gedeckelt) {
             echo '<td>' . htmlspecialchars($r['schwimmer_name']) . '</td>';
             echo '<td>' . number_format($r['spendenbetrag_vormittag'], 2, ',', '.') . ' €</td>';
             echo '<td>' . number_format($r['spendenbetrag_nachmittag'], 2, ',', '.') . ' €</td>';
-            echo '<td>' . number_format($r['spendenbetrag_gesamt'], 2, ',', '.') . ' €</td>';
             echo '<td>' . number_format($r['betrag_gedeckelt'], 2, ',', '.') . ' €</td>';
             echo '</tr>';
         }
@@ -187,7 +182,6 @@ function zeige_abschnitt($titel, $gruppen, $gesamt_gesamt, $gesamt_gedeckelt) {
         echo '<td colspan="3">Summe ' . htmlspecialchars($g['name']) . '</td>';
         echo '<td>' . number_format($g['sum_vormittag'], 2, ',', '.') . ' €</td>';
         echo '<td>' . number_format($g['sum_nachmittag'], 2, ',', '.') . ' €</td>';
-        echo '<td>' . number_format($g['sum_gesamt'], 2, ',', '.') . ' €</td>';
         echo '<td>' . number_format($g['sum_gedeckelt'], 2, ',', '.') . ' €</td>';
         echo '</tr>';
     }
@@ -195,7 +189,6 @@ function zeige_abschnitt($titel, $gruppen, $gesamt_gesamt, $gesamt_gedeckelt) {
     echo '<tr style="font-weight: bold; background-color: #d8e8d8;">';
     echo '<td colspan="3">Gesamtsumme</td>';
     echo '<td></td><td></td>';
-    echo '<td>' . number_format($gesamt_gesamt, 2, ',', '.') . ' €</td>';
     echo '<td>' . number_format($gesamt_gedeckelt, 2, ',', '.') . ' €</td>';
     echo '</tr>';
     echo '</tbody></table></div>';
@@ -221,20 +214,20 @@ function zeige_abschnitt($titel, $gruppen, $gesamt_gesamt, $gesamt_gedeckelt) {
         </div>
     <?php endif; ?>
 
-    <?php zeige_abschnitt('Sponsoren', $sponsoren, $sp_gesamt, $sp_gedeckelt); ?>
-    <?php zeige_abschnitt('Teams', $teams, $t_gesamt, $t_gedeckelt); ?>
-    <?php zeige_abschnitt('Hauptsponsoren', $hauptsponsoren, $h_gesamt, $h_gedeckelt); ?>
+    <?php zeige_abschnitt('Sponsoren', $sponsoren, $sp_gesamt); ?>
+    <?php zeige_abschnitt('Teams', $teams, $t_gedeckelt); ?>
+    <?php zeige_abschnitt('Hauptsponsoren', $hauptsponsoren, $h_gedeckelt); ?>
 
     <!-- Gesamtsumme aller Spenden -->
     <div style="margin-top: 1.5rem; padding: 1rem; background-color: #e8f4e8; border-radius: 4px;">
-        <strong>Gesamtsumme aller Spenden (Sponsoren, gesamt):</strong>
+        <strong>Gesamtsumme aller Spenden (Sponsoren):</strong>
         <?php echo number_format($sp_gesamt, 2, ',', '.'); ?> €<br>
-        <strong>Gesamtsumme aller Spenden (Teams, gesamt):</strong>
-        <?php echo number_format($t_gesamt, 2, ',', '.'); ?> €<br>
-        <strong>Gesamtsumme aller Spenden (Hauptsponsoren, gesamt):</strong>
-        <?php echo number_format($h_gesamt, 2, ',', '.'); ?> €<br><br>
+        <strong>Gesamtsumme aller Spenden (Teams, gedeckelt):</strong>
+        <?php echo number_format($t_gedeckelt, 2, ',', '.'); ?> €<br>
+        <strong>Gesamtsumme aller Spenden (Hauptsponsoren, gedeckelt):</strong>
+        <?php echo number_format($h_gedeckelt, 2, ',', '.'); ?> €<br><br>
         <strong style="font-size: 1.2rem;">Gesamtsumme aller Spenden (Sponsoren + Teams + Hauptsponsoren):</strong>
-        <?php echo number_format($sp_gesamt + $t_gesamt + $h_gesamt, 2, ',', '.'); ?> €
+        <?php echo number_format($sp_gesamt + $t_gedeckelt + $h_gedeckelt, 2, ',', '.'); ?> €
     </div>
 </div>
 <?php

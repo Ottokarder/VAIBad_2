@@ -70,6 +70,24 @@ CREATE TABLE IF NOT EXISTS schwimmer_team (
     FOREIGN KEY (team_id) REFERENCES Teams(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tabelle spenden_sponsoren erstellen (Ergebnistabelle der Spendenberechnung)
+-- Für jede Verknüpfung Schwimmer <-> Sponsor wird ein Eintrag berechnet:
+--   spendenbetrag_vormittag   = schwimmleistung_vormittag * betrag_pro_bahn, gedeckelt auf das Limit
+--   spendenbetrag_nachmittag  = schwimmleistung_nachmittag * betrag_pro_bahn, gedeckelt auf das Limit
+--   spendenbetrag_gesamt     = spendenbetrag_vormittag + spendenbetrag_nachmittag
+CREATE TABLE IF NOT EXISTS spenden_sponsoren (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    schwimmer_id INT NOT NULL,
+    sponsoren_id INT NOT NULL,
+    spendenbetrag_vormittag DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    spendenbetrag_nachmittag DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    spendenbetrag_gesamt DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE INDEX uniq_schwimmer_sponsor_spende (schwimmer_id, sponsoren_id),
+    FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE,
+    FOREIGN KEY (sponsoren_id) REFERENCES Sponsoren(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Optional: Beispiel-Daten einfügen (auskommentiert, falls nicht benötigt)
 --
 -- INSERT INTO Hauptsponsoren (betrag_pro_bahn, `limit`) VALUES

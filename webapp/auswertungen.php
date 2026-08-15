@@ -156,6 +156,9 @@ $g_t_gedeckelt  = $gesamt_teams ? $gesamt_teams[0]['summe_gedeckelt'] : 0;
 $g_h_gesamt     = $gesamt_hauptsponsoren ? $gesamt_hauptsponsoren[0]['summe_gesamt'] : 0;
 $g_h_gedeckelt  = $gesamt_hauptsponsoren ? $gesamt_hauptsponsoren[0]['summe_gedeckelt'] : 0;
 
+// Gesamtsumme aller Spenden (Sponsoren + Teams + Hauptsponsoren).
+$g_total = $g_sp_gesamt + $g_t_gedeckelt + $g_h_gedeckelt;
+
 // CSV-Export: wenn ?export=csv, Datei direkt zum Download ausliefern.
 // Trenner Semikolon + UTF-8-BOM, damit Excel die Datei mit Umlauten korrekt öffnet.
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
@@ -248,6 +251,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     fputcsv($out, ['Sponsoren (gesamt)', $euro($g_sp_gesamt)], ';');
     fputcsv($out, ['Teams (gedeckelt)', $euro($g_t_gedeckelt)], ';');
     fputcsv($out, ['Hauptsponsoren (gedeckelt)', $euro($g_h_gedeckelt)], ';');
+    fputcsv($out, ['Sponsoren + Teams + Hauptsponsoren', $euro($g_total)], ';');
 
     fclose($out);
     $conn->close();
@@ -516,7 +520,9 @@ if (file_exists('includes/header.php')) {
         <strong>Gesamtsumme aller Spenden (Teams, gedeckelt):</strong>
         <?php echo number_format($g_t_gedeckelt, 2, ',', '.'); ?> €<br>
         <strong>Gesamtsumme aller Spenden (Hauptsponsoren, gedeckelt):</strong>
-        <?php echo number_format($g_h_gedeckelt, 2, ',', '.'); ?> €
+        <?php echo number_format($g_h_gedeckelt, 2, ',', '.'); ?> €<br><br>
+        <strong style="font-size: 1.2rem;">Gesamtsumme aller Spenden (Sponsoren + Teams + Hauptsponsoren):</strong>
+        <?php echo number_format($g_total, 2, ',', '.'); ?> €
     </div>
 </div>
 <?php

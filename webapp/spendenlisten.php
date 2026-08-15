@@ -125,9 +125,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     // Gesamtsumme über alle drei Listen
     fputcsv($out, ['Gesamtsumme aller Spenden'], ';');
     fputcsv($out, ['Sponsoren (gesamt)', $euro($sp_gesamt)], ';');
-    fputcsv($out, ['Teams (gedeckelt)', $euro($t_gedeckelt)], ';');
-    fputcsv($out, ['Hauptsponsoren (gedeckelt)', $euro($h_gedeckelt)], ';');
-    fputcsv($out, ['Sponsoren + Teams + Hauptsponsoren', $euro($sp_gesamt + $t_gedeckelt + $h_gedeckelt)], ';');
+    fputcsv($out, ['Teams (gesamt)', $euro($t_gesamt)], ';');
+    fputcsv($out, ['Hauptsponsoren (gesamt)', $euro($h_gesamt)], ';');
+    fputcsv($out, ['Sponsoren + Teams + Hauptsponsoren', $euro($sp_gesamt + $t_gesamt + $h_gesamt)], ';');
 
     fclose($out);
     $conn->close();
@@ -229,12 +229,12 @@ function zeige_abschnitt($titel, $gruppen, $gesamt_gesamt, $gesamt_gedeckelt) {
     <div style="margin-top: 1.5rem; padding: 1rem; background-color: #e8f4e8; border-radius: 4px;">
         <strong>Gesamtsumme aller Spenden (Sponsoren, gesamt):</strong>
         <?php echo number_format($sp_gesamt, 2, ',', '.'); ?> €<br>
-        <strong>Gesamtsumme aller Spenden (Teams, gedeckelt):</strong>
-        <?php echo number_format($t_gedeckelt, 2, ',', '.'); ?> €<br>
-        <strong>Gesamtsumme aller Spenden (Hauptsponsoren, gedeckelt):</strong>
-        <?php echo number_format($h_gedeckelt, 2, ',', '.'); ?> €<br><br>
+        <strong>Gesamtsumme aller Spenden (Teams, gesamt):</strong>
+        <?php echo number_format($t_gesamt, 2, ',', '.'); ?> €<br>
+        <strong>Gesamtsumme aller Spenden (Hauptsponsoren, gesamt):</strong>
+        <?php echo number_format($h_gesamt, 2, ',', '.'); ?> €<br><br>
         <strong style="font-size: 1.2rem;">Gesamtsumme aller Spenden (Sponsoren + Teams + Hauptsponsoren):</strong>
-        <?php echo number_format($sp_gesamt + $t_gedeckelt + $h_gedeckelt, 2, ',', '.'); ?> €
+        <?php echo number_format($sp_gesamt + $t_gesamt + $h_gesamt, 2, ',', '.'); ?> €
     </div>
 </div>
 <?php

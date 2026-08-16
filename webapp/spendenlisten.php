@@ -51,6 +51,21 @@ $res = $conn->query("
 ");
 if ($res) { while ($r = $res->fetch_assoc()) $hauptsponsoren[] = $r; $res->free(); }
 
+// Textfilter "enthält" aus GET holen (Filterung nach Spendername)
+$filter = isset($_GET['filter']) ? trim($_GET['filter']) : '';
+if ($filter !== '') {
+    // case-insensitive "enthält" (UTF-8-sicher)
+    $filter_lists = function (&$liste) use ($filter) {
+        $liste = array_values(array_filter($liste, function ($r) use ($filter) {
+            return ($r['spender_name'] !== null)
+                && mb_stripos($r['spender_name'], $filter) !== false;
+        }));
+    };
+    $filter_lists($sponsoren);
+    $filter_lists($teams);
+    $filter_lists($hauptsponsoren);
+}
+
 // Alle Gruppen für CSV zusammenführen
 $alle = array_merge($sponsoren, $teams, $hauptsponsoren);
 $g_sp = 0; $g_t = 0; $g_h = 0;
@@ -193,9 +208,20 @@ function zeige_summen_abschnitt($titel, $gruppen) {
     <h1>Spendenlisten</h1>
 
     <div class="action-bar">
-        <a href="/VAIBad_2/webapp/spendenlisten.php?export=csv" class="btn btn-primary">CSV (nur Summen)</a>
-        <a href="/VAIBad_2/webapp/spendenlisten.php?export=csv-details" class="btn btn-primary">CSV (mit Details)</a>
+        <a href="/VAIBad_2/webapp/spendenlisten.php?export=csv<?php echo $filter !== '' ? '&filter=' . urlencode($filter) : ''; ?>" class="btn btn-primary">CSV (nur Summen)</a>
+        <a href="/VAIBad_2/webapp/spendenlisten.php?export=csv-details<?php echo $filter !== '' ? '&filter=' . urlencode($filter) : ''; ?>" class="btn btn-primary">CSV (mit Details)</a>
         <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+    </div>
+
+    <!-- Filter (enthält Spendername) -->
+    <div class="action-bar" style="margin-bottom: 1rem;">
+        <form method="GET" action="/VAIBad_2/webapp/spendenlisten.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+            <input type="text" name="filter" placeholder="Filter (Spendername enthält)..." value="<?php echo htmlspecialchars($filter); ?>" style="flex:1; min-width:200px; padding:.4rem .6rem;">
+            <button type="submit" class="btn btn-primary">Filtern</button>
+            <?php if ($filter !== ''): ?>
+                <a href="/VAIBad_2/webapp/spendenlisten.php" class="btn btn-secondary">Zurücksetzen</a>
+            <?php endif; ?>
+        </form>
     </div>
 
     <?php

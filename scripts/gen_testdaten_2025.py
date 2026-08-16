@@ -1,8 +1,21 @@
 #!/usr/bin/env python3
 """Erzeugt aus daten/datei.xlsx die Datei vaibad_2_testdaten_2025.sql.
 
-Liest die drei Stammdaten-Blätter und schreibt INSERT-Befehle passend zum
+Liest die drei Stammdaten-Blaetter und schreibt INSERT-Befehle passend zum
 Schema in vaibad_2_database_setup.sql.
+
+WICHTIG zum Sponsoren-Modell (Stand: ohne Schema-Erweiterung):
+In der Datenbank hat jeder Sponsor genau einen globalen betrag_pro_bahn und
+ein globales limit. In der Excel sind diese Werte aber pro
+Schwimmer-Sponsor-Paar unterschiedlich (derselbe Sponsor zahlt bei
+Schwimmer A 0,50/Bahn und bei Schwimmer B 1,00/Bahn, evtl. mit Limit).
+
+Da die Tabelle schwimmer_sponsor nur eine reine Zuordnungstabelle ist
+(schwimmer_id, sponsoren_id), werden Sponsoren mit unterschiedlichen
+Konditionen MEHRFACH angelegt: fuer jedes Schwimmer-Sponsor-Paar ein eigener
+Datensatz in der Tabelle Sponsoren, mit demselben Namen, aber dem jeweiligen
+betrag_pro_bahn und limit. Unterschieden werden die Datensaetze ueber die id.
+Eine manuelle Zusammenfuehrung gleichnamiger Sponsoren ist spaeter moeglich.
 
 Regeln (vom Nutzer vorgegeben):
 - Schwimmer: Nr <= 50 -> nur vormittags geschwommen (Bahnen = vormittag, nachmittag=0).
@@ -13,12 +26,13 @@ Regeln (vom Nutzer vorgegeben):
 - Mannschaft (Team-Nummer): kann mehrere Teams enthalten, getrennt durch Komma ODER Punkt
   (z.B. "503, 504" oder "503.505"). Schwimmer wird allen genannten Teams zugeordnet.
   Team 101/Platzhalter werden ignoriert. Schwimmer ohne Mannschaft = kein Team.
-- Sponsoren: Limit (Max. Betrag) gilt NUR aus dem Schwimmer-Blatt pro Schwimmer-Sponsor-Paar.
+- Sponsoren: Name aus der Sponsoren-Stammdaten-Tabelle; betrag_pro_bahn und limit
+  gelten PRO Schwimmer-Sponsor-Paar aus dem Schwimmer-Blatt.
   Der "Max. Betrag" aus der Sponsoren-Stammdaten-Tabelle ist bedeutungslos (wird ignoriert).
 - Hauptsponsoren: keine anlegen.
 - Teams: nur Teams mit echtem Namen anlegen (501-505). Platzhalter-Teams ab 506 leer -> weglassen.
 - Team-Mitglieder: aus Schwimmer-Blatt (Mannschaft-Spalte) ableiten, NICHT aus Team-Blatt
-  (das enthällt 101-Platzhalter). Quelle der Wahrheit für die Zuordnung ist die
+  (das enthaellt 101-Platzhalter). Quelle der Wahrheit fuer die Zuordnung ist die
   Mannschaft-Spalte der Schwimmer.
 """
 import openpyxl
@@ -105,9 +119,11 @@ def parse_teams(mannschaft):
 def main():
     wb = openpyxl.load_workbook(XLSX, data_only=True)
 
-    # ---- Sponsoren einlesen ----
+    # ---- Sponsor-Namen einlesen (Nr -> Name) ----
+    # Nur der Name interessiert; betrag_pro_bahn und limit werden pro Paar
+    # aus dem Schwimmer-Blatt bezogen.
     ws_sp = wb["Stammdaten - Sponsoren"]
-    sponsoren = {}  # nr -> name (firma + vertreter)
+    sponsor_name = {}  # nr -> name (firma + vertreter)
     for r in range(4, ws_sp.max_row + 1):
         nr = ws_sp.cell(r, 1).value
         name = ws_sp.cell(r, 2).value
@@ -119,14 +135,14 @@ def main():
             continue
         if name is None and vertreter is None:
             continue  # leerer Eintrag
-        # Name zusammenbauen: "Firma (Vertreter)" oder nur Firma oder nur Vertreter
+        # Name zusammenbauen: "Firma - Vertreter" oder nur Firma oder nur Vertreter
         parts = []
         if name:
             parts.append(str(name).strip())
         if vertreter:
             parts.append(str(vertreter).strip())
         full_name = " - ".join(parts) if len(parts) == 2 else parts[0]
-        sponsoren[nr] = full_name
+        sponsor_name[nr] = full_name
 
     # ---- Teams einlesen (nur echte Teams mit Namen) ----
     ws_tm = wb["Stammdaten Teams"]
@@ -214,8 +230,10 @@ def main():
     lines.append("--   * Schwimmer Nr<=50: nur vormittags geschwommen.")
     lines.append("--   * Schwimmer Nr>50:  nur nachmittags geschwommen.")
     lines.append("--   * Summe 'a+a' in Bahnen-Spalte: a vormittags + a nachmittags.")
-    lines.append("--   * Limit (Max. Betrag) gilt pro Schwimmer-Sponsor-Paar aus dem")
-    lines.append("--     Schwimmer-Blatt. 'Max. Betrag' aus der Sponsoren-Tabelle wird ignoriert.")
+    lines.append("--   * Sponsoren werden PRO Schwimmer-Sponsor-Paar angelegt:")
+    lines.append("--     gleicher Name, aber eigener betrag_pro_bahn und limit pro Paar.")
+    lines.append("--     Unterschieden wird ueber die id. Eine manuelle Zusammenfuehrung")
+    lines.append("--     gleichnamiger Sponsoren ist spaeter moeglich.")
     lines.append("--   * Keine Hauptsponsoren.")
     lines.append("--   * Geburtsjahr aus dem Geburtstag-Datum abgeleitet.")
     lines.append("--")
@@ -245,23 +263,65 @@ def main():
     lines.append("ALTER TABLE schwimmer_team AUTO_INCREMENT = 1;")
     lines.append("")
 
-    # --- Sponsoren einfuegen ---
-    lines.append(f"-- Sponsoren ({len(sponsoren)} Eintraege)")
+    # --- Schwimmer einfuegen (zuerst, damit die Sponsor-Paare referenzieren koennen) ---
+    lines.append(f"-- Schwimmer ({len(schwimmer)} Eintraege)")
+    lines.append("INSERT INTO Schwimmer (startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag) VALUES")
+    sw_rows = []
+    for s in schwimmer:
+        sw_rows.append(
+            f"  ({s['nr']}, {sql_str(s['vorname'])}, {sql_str(s['nachname'])}, "
+            f"{s['geburtsjahr']}, {s['vm']}, {s['nm']})"
+        )
+    lines.append(",\n".join(sw_rows) + ";")
+    lines.append("")
+    # Map startnummer -> DB-id (Schwimmer.id = fortlaufend ab 1 in Einfuege-Reihefolge)
+    schwimmer_id_map = {}
+    for idx, s in enumerate(schwimmer, start=1):
+        schwimmer_id_map[s["nr"]] = idx
+
+    # --- Sponsoren einfuegen: PRO Schwimmer-Sponsor-Paar ein eigener Datensatz ---
+    # Name stammt aus der Sponsoren-Stammdaten-Tabelle; betrag_pro_bahn und limit
+    # aus dem jeweiligen Schwimmer-Blatt-Eintrag. Sponsoren mit unterschiedlichen
+    # Konditionen werden mehrfach (gleicher Name, unterschiedliche id) angelegt.
+    sponsor_rows = []  # list of (name, betrag_pro_bahn, limit)
+    verknuepfungen = []  # list of (schwimmer_id, sponsoren_id)
+    missing_names = set()
+    for s in schwimmer:
+        sid = schwimmer_id_map[s["nr"]]
+        # Doppelte Sponsor-Zuordnungen pro Schwimmer bereinigen (z.B. Nr.18 hat 1015 doppelt)
+        seen = set()
+        for sp in s["sponsoren"]:
+            key = sp["sponsoren_nr"]
+            if key in seen:
+                continue
+            seen.add(key)
+            name = sponsor_name.get(sp["sponsoren_nr"])
+            if name is None:
+                missing_names.add(sp["sponsoren_nr"])
+                continue  # Sponsor ohne Stammdaten-Eintrag -> skippen
+            sponsor_rows.append((name, sp["betrag_pro_bahn"], sp["limit"]))
+            sponsoren_id = len(sponsor_rows)  # AUTO_INCREMENT ab 1
+            verknuepfungen.append((sid, sponsoren_id))
+
+    lines.append(f"-- Sponsoren ({len(sponsor_rows)} Eintraege)")
+    lines.append("-- Pro Schwimmer-Sponsor-Paar ein eigener Datensatz (gleicher Name moeglich,")
+    lines.append("-- unterschieden ueber die id). betrag_pro_bahn/limit aus dem Schwimmer-Blatt.")
     lines.append("INSERT INTO Sponsoren (name, betrag_pro_bahn, `limit`) VALUES")
     sp_rows = []
-    for nr in sorted(sponsoren):
-        name = sponsoren[nr]
-        # betrag_pro_bahn: unbekannt aus Sponsoren-Tabelle, default 0.00
-        # limit: bedeutungslos laut Nutzer -> NULL
-        sp_rows.append(f"  ({sql_str(name)}, 0.00, NULL)")
+    for (name, spb, mx) in sponsor_rows:
+        lim = "NULL" if mx is None else str(mx)
+        sp_rows.append(f"  ({sql_str(name)}, {spb:.2f}, {lim})")
     lines.append(",\n".join(sp_rows) + ";")
     lines.append("")
 
-    # Map externer Sponsor-Nr -> DB-id (Reihenfolge wie oben = sortiert nach Nr)
-    # Da AUTO_INCREMENT bei 1 startet, entspricht die id der Position in der sortierten Liste.
-    sponsor_id_map = {}
-    for idx, nr in enumerate(sorted(sponsoren), start=1):
-        sponsor_id_map[nr] = idx
+    # --- schwimmer_sponsor einfuegen: reine Zuordnungstabelle (nur IDs) ---
+    if verknuepfungen:
+        lines.append(f"-- Schwimmer-Sponsor Verknuepfungen ({len(verknuepfungen)} Eintraege)")
+        lines.append("-- Reine Zuordnungstabelle; Betrag/Limit liegen am Sponsor.")
+        lines.append("INSERT INTO schwimmer_sponsor (schwimmer_id, sponsoren_id) VALUES")
+        vs_rows = [f"  ({sid}, {spon_id})" for (sid, spon_id) in verknuepfungen]
+        lines.append(",\n".join(vs_rows) + ";")
+        lines.append("")
 
     # --- Teams einfuegen ---
     lines.append(f"-- Teams ({len(teams)} Eintraege)")
@@ -273,55 +333,9 @@ def main():
         tm_rows.append(f"  ({sql_str(t['name'])}, {t['betrag']:.2f}, NULL)")
     lines.append(",\n".join(tm_rows) + ";")
     lines.append("")
-
     team_id_map = {}
     for idx, nr in enumerate(sorted(teams), start=1):
         team_id_map[nr] = idx
-
-    # --- Schwimmer einfuegen ---
-    lines.append(f"-- Schwimmer ({len(schwimmer)} Eintraege)")
-    lines.append("INSERT INTO Schwimmer (startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag) VALUES")
-    sw_rows = []
-    for s in schwimmer:
-        sw_rows.append(
-            f"  ({s['nr']}, {sql_str(s['vorname'])}, {sql_str(s['nachname'])}, "
-            f"{s['geburtsjahr']}, {s['vm']}, {s['nm']})"
-        )
-    lines.append(",\n".join(sw_rows) + ";")
-    lines.append("")
-
-    # Map startnummer -> DB-id (Schwimmer.id = fortlaufend ab 1 in Einfuege-Reihefolge)
-    schwimmer_id_map = {}
-    for idx, s in enumerate(schwimmer, start=1):
-        schwimmer_id_map[s["nr"]] = idx
-
-    # --- schwimmer_sponsor einfuegen ---
-    vpairs = []
-    for s in schwimmer:
-        sid = schwimmer_id_map[s["nr"]]
-        # Doppelte Sponsor-Zuordnungen pro Schwimmer bereinigen (z.B. Nr.18 hat 1015 doppelt)
-        seen = set()
-        for sp in s["sponsoren"]:
-            key = sp["sponsoren_nr"]
-            if key in seen:
-                continue
-            seen.add(key)
-            spon_id = sponsor_id_map.get(sp["sponsoren_nr"])
-            if spon_id is None:
-                continue
-            vpairs.append((sid, spon_id, sp["betrag_pro_bahn"], sp["limit"]))
-
-    if vpairs:
-        lines.append(f"-- Schwimmer-Sponsor Verknuepfungen ({len(vpairs)} Eintraege)")
-        lines.append("-- betrag_pro_bahn und limit werden PRO PAAR gespeichert (Schema erweitert,")
-        lines.append("-- siehe vaibad_2_migration_schwimmer_sponsor_betrag.sql).")
-        lines.append("INSERT INTO schwimmer_sponsor (schwimmer_id, sponsoren_id, betrag_pro_bahn, `limit`) VALUES")
-        vs_rows = []
-        for (sid, spon_id, spb, mx) in vpairs:
-            lim = "NULL" if mx is None else str(mx)
-            vs_rows.append(f"  ({sid}, {spon_id}, {spb:.2f}, {lim})")
-        lines.append(",\n".join(vs_rows) + ";")
-        lines.append("")
 
     # --- schwimmer_team einfuegen ---
     tpairs = []
@@ -345,28 +359,30 @@ def main():
         lines.append("")
 
     lines.append("-- Ergebnistabellen (spenden_*) werden NICHT hier befuellt.")
-    lines.append("-- Sie werden ueber die Migrationsskripte bzw. die Spendenberechnung")
-    lines.append("-- in der Webapp gefuellt (siehe vaibad_2_migration_*.sql und")
-    lines.append("-- webapp/spendenberechnung*.php).")
+    lines.append("-- Sie werden ueber die Spendenberechnung in der Webapp gefuellt")
+    lines.append("-- (siehe webapp/spendenberechnung.php).")
     lines.append("")
     lines.append("SELECT 'Testdaten 2025 erfolgreich eingefuegt.' AS Erfolg;")
     lines.append("")
-
     with open(OUT, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
     # Statistik auf stderr
     import sys
-    print(f"Sponsoren: {len(sponsoren)}", file=sys.stderr)
+    print(f"Sponsoren (Paar-Datensaetze): {len(sponsor_rows)}", file=sys.stderr)
     print(f"Teams: {len(teams)}", file=sys.stderr)
     print(f"Schwimmer: {len(schwimmer)}", file=sys.stderr)
-    print(f"Schwimmer-Sponsor-Paare: {len(vpairs)}", file=sys.stderr)
+    print(f"Schwimmer-Sponsor-Paare: {len(verknuepfungen)}", file=sys.stderr)
     print(f"Schwimmer-Team-Paare: {len(tpairs)}", file=sys.stderr)
-    # nicht zugeordnete Sponsoren-Nrn
-    all_sp_used = set(sp["sponsoren_nr"] for s in schwimmer for sp in s["sponsoren"])
-    missing = all_sp_used - set(sponsor_id_map)
-    if missing:
-        print(f"WARN: Sponsoren-Nrn ohne Eintrag in Sponsoren-Tabelle: {sorted(missing)}", file=sys.stderr)
+    if missing_names:
+        print(f"WARN: Sponsoren-Nrn ohne Eintrag in Sponsoren-Tabelle: {sorted(missing_names)}", file=sys.stderr)
+    # gleichnamige Sponsoren (Hinweis fuer manuelle Zusammenfuehrung)
+    from collections import Counter
+    dup = {n: c for n, c in Counter(n for (n, _, _) in sponsor_rows).items() if c > 1}
+    if dup:
+        print(f"Hinweis: {len(dup)} Sponsor-Name(n) mehrfach angelegt (Zusammenfuehrung moeglich).", file=sys.stderr)
+        for n, c in sorted(dup.items(), key=lambda kv: -kv[1])[:10]:
+            print(f"   {c}x  {n}", file=sys.stderr)
     all_tm_used = set(t for s in schwimmer for t in s["teams"])
     missing_t = all_tm_used - set(team_id_map)
     if missing_t:

@@ -58,8 +58,6 @@ CREATE TABLE IF NOT EXISTS schwimmer_sponsor (
     id INT AUTO_INCREMENT PRIMARY KEY,
     schwimmer_id INT NOT NULL,
     sponsoren_id INT NOT NULL,
-    betrag_pro_bahn DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    `limit` INT NULL,
     FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE,
     FOREIGN KEY (sponsoren_id) REFERENCES Sponsoren(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

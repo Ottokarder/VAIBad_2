@@ -12,10 +12,12 @@ Schwimmer A 0,50/Bahn und bei Schwimmer B 1,00/Bahn, evtl. mit Limit).
 
 Da die Tabelle schwimmer_sponsor nur eine reine Zuordnungstabelle ist
 (schwimmer_id, sponsoren_id), werden Sponsoren mit unterschiedlichen
-Konditionen MEHRFACH angelegt: fuer jedes Schwimmer-Sponsor-Paar ein eigener
-Datensatz in der Tabelle Sponsoren, mit demselben Namen, aber dem jeweiligen
-betrag_pro_bahn und limit. Unterschieden werden die Datensaetze ueber die id.
-Eine manuelle Zusammenfuehrung gleichnamiger Sponsoren ist spaeter moeglich.
+Konditionen pro Kombination (Name, Betrag, Limit) angelegt: Ein Sponsor mit
+gleichem Namen, gleichem Betrag und gleichem Limit wird nur einmal angelegt
+(dieselbe id); nur wenn sich bei gleichem Namen der Betrag oder das Limit
+aendert, entsteht ein weiterer Datensatz. Unterschieden werden die Datensaetze
+ueber die id. Eine manuelle Zusammenfuehrung gleichnamiger Sponsoren ist
+spaeter moeglich.
 
 Regeln (vom Nutzer vorgegeben):
 - Schwimmer: Nr <= 50 -> nur vormittags geschwommen (Bahnen = vormittag, nachmittag=0).
@@ -283,7 +285,13 @@ def main():
     # Name stammt aus der Sponsoren-Stammdaten-Tabelle; betrag_pro_bahn und limit
     # aus dem jeweiligen Schwimmer-Blatt-Eintrag. Sponsoren mit unterschiedlichen
     # Konditionen werden mehrfach (gleicher Name, unterschiedliche id) angelegt.
+    # Sponsoren: fuer jede einmalige Kombination (name, betrag_pro_bahn, limit)
+    # wird EIN Sponsor-Datensatz angelegt. Ein neuer Sponsor entsteht nur, wenn
+    # sich bei gleichem Namen der Spendenbetrag oder das Limit aendert; sind beide
+    # gleich, wird dieselbe sponsoren_id wiederverwendet (manuelle Zusammenfuehrung
+    # gleichnamiger Sponsoren mit unterschiedlichen Konditionen bleibt moeglich).
     sponsor_rows = []  # list of (name, betrag_pro_bahn, limit)
+    sponsor_key_to_id = {}  # (name, betrag_pro_bahn, limit) -> sponsoren_id
     verknuepfungen = []  # list of (schwimmer_id, sponsoren_id)
     missing_names = set()
     for s in schwimmer:
@@ -299,13 +307,19 @@ def main():
             if name is None:
                 missing_names.add(sp["sponsoren_nr"])
                 continue  # Sponsor ohne Stammdaten-Eintrag -> skippen
-            sponsor_rows.append((name, sp["betrag_pro_bahn"], sp["limit"]))
-            sponsoren_id = len(sponsor_rows)  # AUTO_INCREMENT ab 1
+            spon_key = (name, sp["betrag_pro_bahn"], sp["limit"])
+            if spon_key not in sponsor_key_to_id:
+                sponsor_rows.append((name, sp["betrag_pro_bahn"], sp["limit"]))
+                sponsoren_id = len(sponsor_rows)  # AUTO_INCREMENT ab 1
+                sponsor_key_to_id[spon_key] = sponsoren_id
+            else:
+                sponsoren_id = sponsor_key_to_id[spon_key]
             verknuepfungen.append((sid, sponsoren_id))
 
     lines.append(f"-- Sponsoren ({len(sponsor_rows)} Eintraege)")
-    lines.append("-- Pro Schwimmer-Sponsor-Paar ein eigener Datensatz (gleicher Name moeglich,")
-    lines.append("-- unterschieden ueber die id). betrag_pro_bahn/limit aus dem Schwimmer-Blatt.")
+    lines.append("-- Pro einmaliger Kombination (Name, Betrag, Limit) ein Datensatz; gleicher Name")
+    lines.append("-- mit gleichem Betrag und Limit -> dieselbe id. Neuer Sponsor nur bei")
+    lines.append("-- abweichendem Betrag oder Limit (manuelle Zusammenfuehrung moeglich).")
     lines.append("INSERT INTO Sponsoren (name, betrag_pro_bahn, `limit`) VALUES")
     sp_rows = []
     for (name, spb, mx) in sponsor_rows:

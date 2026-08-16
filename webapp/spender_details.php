@@ -64,11 +64,14 @@ $result = $stmt->get_result();
 
 $zeilen = [];
 $sum_v = $sum_n = $sum_b = 0.0;
+$sum_bahnen_v = $sum_bahnen_n = 0;
 while ($row = $result->fetch_assoc()) {
     $zeilen[] = $row;
     $sum_v += (float)$row['spendenbetrag_vormittag'];
     $sum_n += (float)$row['spendenbetrag_nachmittag'];
     $sum_b += (float)$row['betrag'];
+    $sum_bahnen_v += (int)$row['schwimmleistung_vormittag'];
+    $sum_bahnen_n += (int)$row['schwimmleistung_nachmittag'];
 }
 $stmt->close();
 
@@ -98,7 +101,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $euro($r['betrag'])
         ], ';');
     }
-    fputcsv($out, ['Summe', '', '', '', $euro($sum_v), $euro($sum_n), $euro($sum_b)], ';');
+    fputcsv($out, ['Summe', '', $sum_bahnen_v, $sum_bahnen_n, $euro($sum_v), $euro($sum_n), $euro($sum_b)], ';');
     fclose($out);
     $conn->close();
     exit;
@@ -161,7 +164,9 @@ if (file_exists('includes/header.php')) {
                         </tr>
                     <?php endforeach; ?>
                     <tr style="font-weight: bold; background-color: #f0f0f0;">
-                        <td colspan="4">Summe</td>
+                        <td colspan="2">Summe</td>
+                        <td><?php echo number_format($sum_bahnen_v, 0, '', '.'); ?></td>
+                        <td><?php echo number_format($sum_bahnen_n, 0, '', '.'); ?></td>
                         <td><?php echo number_format($sum_v, 2, ',', '.'); ?> €</td>
                         <td><?php echo number_format($sum_n, 2, ',', '.'); ?> €</td>
                         <td><?php echo number_format($sum_b, 2, ',', '.'); ?> €</td>

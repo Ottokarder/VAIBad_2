@@ -156,6 +156,65 @@ $bahnen_unter14 = ($dist_unter14 && $dist_unter14[0]['bahnen']) ? (int)$dist_unt
 $bahnen_ueber14 = ($dist_ueber14 && $dist_ueber14[0]['bahnen']) ? (int)$dist_ueber14[0]['bahnen'] : 0;
 $bahnen_total = $bahnen_unter14 + $bahnen_ueber14;
 
+// --- Jüngster Schwimmer mit den meisten Bahnen ---
+// Jüngster = höchstes Geburtsjahr; bei mehreren entscheidet die höhere Bahnenzahl.
+// Die Bahnen beziehen sich auf den jeweiligen Durchlauf ($leistung_spalte).
+$juengster = hole_liste($conn, "
+    SELECT s.startnummer, s.vorname, s.nachname, s.geburtsjahr,
+           (" . $aktuelles_jahr . " - s.geburtsjahr) AS alter_jahre,
+           " . $leistung_spalte . " AS bahnen
+    FROM Schwimmer s
+    WHERE " . $leistung_spalte . " > 0
+    ORDER BY s.geburtsjahr DESC, " . $leistung_spalte . " DESC, s.startnummer ASC
+    LIMIT 1
+");
+
+// --- Ältester Schwimmer mit den meisten Bahnen ---
+// Ältester = niedrigstes Geburtsjahr; bei mehreren entscheidet die höhere Bahnenzahl.
+$aeltester = hole_liste($conn, "
+    SELECT s.startnummer, s.vorname, s.nachname, s.geburtsjahr,
+           (" . $aktuelles_jahr . " - s.geburtsjahr) AS alter_jahre,
+           " . $leistung_spalte . " AS bahnen
+    FROM Schwimmer s
+    WHERE " . $leistung_spalte . " > 0
+    ORDER BY s.geburtsjahr ASC, " . $leistung_spalte . " DESC, s.startnummer ASC
+    LIMIT 1
+");
+
+// --- Anzahl der Schwimmer pro Durchlauf ---
+// Vormittag: Schwimmer mit Bahnen > 0 am Vormittag.
+$anzahl_vormittag = hole_liste($conn, "
+    SELECT COUNT(*) AS anzahl
+    FROM Schwimmer s WHERE s.schwimmleistung_vormittag > 0
+");
+$anz_v = ($anzahl_vormittag && $anzahl_vormittag[0]['anzahl']) ? (int)$anzahl_vormittag[0]['anzahl'] : 0;
+
+// Nachmittag: Schwimmer mit Bahnen > 0 am Nachmittag.
+$anzahl_nachmittag = hole_liste($conn, "
+    SELECT COUNT(*) AS anzahl
+    FROM Schwimmer s WHERE s.schwimmleistung_nachmittag > 0
+");
+$anz_n = ($anzahl_nachmittag && $anzahl_nachmittag[0]['anzahl']) ? (int)$anzahl_nachmittag[0]['anzahl'] : 0;
+
+// Gesamt: Schwimmer, die an mindestens einem Durchlauf teilgenommen haben
+// (Vormittag > 0 ODER Nachmittag > 0). Wer an beiden dabei war, wird nur einmal gezählt.
+$anzahl_gesamt = hole_liste($conn, "
+    SELECT COUNT(*) AS anzahl
+    FROM Schwimmer s
+    WHERE s.schwimmleistung_vormittag > 0 OR s.schwimmleistung_nachmittag > 0
+");
+$anz_g = ($anzahl_gesamt && $anzahl_gesamt[0]['anzahl']) ? (int)$anzahl_gesamt[0]['anzahl'] : 0;
+
+// --- Anzahl Sponsoren / Teams / Hauptsponsoren ---
+$anz_sponsoren = hole_liste($conn, "SELECT COUNT(*) AS anzahl FROM Sponsoren");
+$anz_sp = ($anz_sponsoren && $anz_sponsoren[0]['anzahl']) ? (int)$anz_sponsoren[0]['anzahl'] : 0;
+
+$anz_teams = hole_liste($conn, "SELECT COUNT(*) AS anzahl FROM Teams");
+$anz_t = ($anz_teams && $anz_teams[0]['anzahl']) ? (int)$anz_teams[0]['anzahl'] : 0;
+
+$anz_hauptsponsoren = hole_liste($conn, "SELECT COUNT(*) AS anzahl FROM Hauptsponsoren");
+$anz_h = ($anz_hauptsponsoren && $anz_hauptsponsoren[0]['anzahl']) ? (int)$anz_hauptsponsoren[0]['anzahl'] : 0;
+
 // --- Gesamtsummen der Spenden (über alle Einträge) ---
 $gesamt_sponsoren = hole_liste($conn, "
     SELECT SUM(" . $spenden_spalte_sponsoren . ") AS summe
@@ -199,6 +258,30 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     fputcsv($out, ['Unter 14 Jahre (25m)', '25', $bahnen_unter14, $km($km_unter14)], ';');
     fputcsv($out, ['Über 14 Jahre (50m)', '50', $bahnen_ueber14, $km($km_ueber14)], ';');
     fputcsv($out, ['Gesamt', '', $bahnen_total, $km($km_total)], ';');
+    fputcsv($out, [], ';');
+
+    // Übersichtsstatistiken
+    fputcsv($out, ['Übersicht'], ';');
+    fputcsv($out, ['Jüngster Schwimmer mit den meisten Bahnen'], ';');
+    fputcsv($out, ['Startnummer', 'Nachname', 'Vorname', 'Geburtsjahr', 'Alter', $leistung_label], ';');
+    if (!empty($juengster)) {
+        $j = $juengster[0];
+        fputcsv($out, [$fmt($j['startnummer']), $fmt($j['nachname']), $fmt($j['vorname']), $fmt($j['geburtsjahr']), $fmt($j['alter_jahre']), $fmt($j['bahnen'])], ';');
+    }
+    fputcsv($out, ['Ältester Schwimmer mit den meisten Bahnen'], ';');
+    fputcsv($out, ['Startnummer', 'Nachname', 'Vorname', 'Geburtsjahr', 'Alter', $leistung_label], ';');
+    if (!empty($aeltester)) {
+        $a = $aeltester[0];
+        fputcsv($out, [$fmt($a['startnummer']), $fmt($a['nachname']), $fmt($a['vorname']), $fmt($a['geburtsjahr']), $fmt($a['alter_jahre']), $fmt($a['bahnen'])], ';');
+    }
+    fputcsv($out, [], ';');
+    fputcsv($out, ['Anzahl / Summen'], ';');
+    fputcsv($out, ['Schwimmer am Vormittag', $anz_v], ';');
+    fputcsv($out, ['Schwimmer am Nachmittag', $anz_n], ';');
+    fputcsv($out, ['Schwimmer gesamt (jeder nur einmal)', $anz_g], ';');
+    fputcsv($out, ['Anzahl Sponsoren', $anz_sp], ';');
+    fputcsv($out, ['Anzahl Teams', $anz_t], ';');
+    fputcsv($out, ['Anzahl Hauptsponsoren', $anz_h], ';');
     fputcsv($out, [], ';');
 
     // Top-Ten Schwimmer über 14 (50m)
@@ -336,6 +419,84 @@ if (file_exists('includes/header.php')) {
                     <td><?php echo number_format($bahnen_total, 0, '', '.'); ?></td>
                     <td><?php echo number_format($km_total, 3, ',', '.'); ?></td>
                 </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Übersichtsstatistiken -->
+    <h2 style="margin-top: 2rem;">Übersicht</h2>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Jüngster Schwimmer mit den meisten Bahnen</th>
+                    <th>Startnummer</th>
+                    <th>Nachname</th>
+                    <th>Vorname</th>
+                    <th>Geburtsjahr</th>
+                    <th>Alter</th>
+                    <th><?php echo htmlspecialchars($leistung_label); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($juengster)):
+                    $j = $juengster[0]; ?>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td><?php echo htmlspecialchars($j['startnummer']); ?></td>
+                        <td><?php echo htmlspecialchars($j['nachname']); ?></td>
+                        <td><?php echo htmlspecialchars($j['vorname']); ?></td>
+                        <td><?php echo htmlspecialchars($j['geburtsjahr']); ?></td>
+                        <td><?php echo htmlspecialchars($j['alter_jahre']); ?></td>
+                        <td><strong><?php echo htmlspecialchars($j['bahnen']); ?></strong></td>
+                    </tr>
+                <?php else: ?>
+                    <tr><td colspan="7" class="no-data">Keine Schwimmer gefunden.</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        <table class="data-table" style="margin-top: 1rem;">
+            <thead>
+                <tr>
+                    <th>Ältester Schwimmer mit den meisten Bahnen</th>
+                    <th>Startnummer</th>
+                    <th>Nachname</th>
+                    <th>Vorname</th>
+                    <th>Geburtsjahr</th>
+                    <th>Alter</th>
+                    <th><?php echo htmlspecialchars($leistung_label); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($aeltester)):
+                    $a = $aeltester[0]; ?>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td><?php echo htmlspecialchars($a['startnummer']); ?></td>
+                        <td><?php echo htmlspecialchars($a['nachname']); ?></td>
+                        <td><?php echo htmlspecialchars($a['vorname']); ?></td>
+                        <td><?php echo htmlspecialchars($a['geburtsjahr']); ?></td>
+                        <td><?php echo htmlspecialchars($a['alter_jahre']); ?></td>
+                        <td><strong><?php echo htmlspecialchars($a['bahnen']); ?></strong></td>
+                    </tr>
+                <?php else: ?>
+                    <tr><td colspan="7" class="no-data">Keine Schwimmer gefunden.</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        <table class="data-table" style="margin-top: 1rem;">
+            <thead>
+                <tr>
+                    <th colspan="2">Anzahl / Summen</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Schwimmer am Vormittag</td><td><strong><?php echo $anz_v; ?></strong></td></tr>
+                <tr><td>Schwimmer am Nachmittag</td><td><strong><?php echo $anz_n; ?></strong></td></tr>
+                <tr><td>Schwimmer gesamt (jeder nur einmal)</td><td><strong><?php echo $anz_g; ?></strong></td></tr>
+                <tr><td>Anzahl Sponsoren</td><td><strong><?php echo $anz_sp; ?></strong></td></tr>
+                <tr><td>Anzahl Teams</td><td><strong><?php echo $anz_t; ?></strong></td></tr>
+                <tr><td>Anzahl Hauptsponsoren</td><td><strong><?php echo $anz_h; ?></strong></td></tr>
             </tbody>
         </table>
     </div>

@@ -30,8 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['berechnen'])) {
                ss.sponsoren_id,
                sw.schwimmleistung_vormittag,
                sw.schwimmleistung_nachmittag,
-               sp.betrag_pro_bahn,
-               sp.`limit`
+               IFNULL(ss.betrag_pro_bahn, sp.betrag_pro_bahn) AS betrag_pro_bahn,
+               IFNULL(ss.`limit`, sp.`limit`) AS `limit`
         FROM schwimmer_sponsor ss
         JOIN Schwimmer sw ON ss.schwimmer_id = sw.id
         JOIN Sponsoren sp ON ss.sponsoren_id = sp.id

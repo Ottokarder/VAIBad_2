@@ -30,8 +30,8 @@ if ($typ === 'sponsor') {
     $betrag_spalte = $alias . '.spendenbetrag_gedeckelt';
 }
 
-// Spendername und Limit holen
-$stmt = $conn->prepare("SELECT " . $namen_spalte . ", `limit` FROM " . $namen_tabelle . " WHERE id = ?");
+// Spendername, Betrag pro Bahn und Limit holen
+$stmt = $conn->prepare("SELECT " . $namen_spalte . ", betrag_pro_bahn, `limit` FROM " . $namen_tabelle . " WHERE id = ?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $res = $stmt->get_result();
@@ -45,9 +45,11 @@ if (!$spender) {
 
 $typ_label = ['sponsor' => 'Sponsor', 'team' => 'Team', 'hauptsponsor' => 'Hauptsponsor'];
 
-// Einzelschwimmer abrufen
+// Einzelschwimmer abrufen (inkl. Bahnen Vormittag/Nachmittag)
 $stmt = $conn->prepare("
     SELECT sw.startnummer, CONCAT(sw.vorname, ' ', sw.nachname) AS schwimmer_name,
+           sw.schwimmleistung_vormittag,
+           sw.schwimmleistung_nachmittag,
            " . $alias . ".spendenbetrag_vormittag,
            " . $alias . ".spendenbetrag_nachmittag,
            " . $betrag_spalte . " AS betrag
@@ -82,19 +84,21 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $euro = function($v) { return number_format((float)$v, 2, ',', ''); };
 
     fputcsv($out, ['Details für ' . $typ_label[$typ] . ' ' . $spender[$namen_spalte]], ';');
-    if ($typ !== 'sponsor' && $spender['limit'] !== null) {
+    fputcsv($out, ['Betrag pro Bahn', $euro($spender['betrag_pro_bahn'])], ';');
+    if ($spender['limit'] !== null) {
         fputcsv($out, ['Limit', $euro($spender['limit'])], ';');
     }
     fputcsv($out, [], ';');
-    fputcsv($out, ['Startnr.', 'Schwimmer', 'Vormittag', 'Nachmittag', 'Betrag'], ';');
+    fputcsv($out, ['Startnr.', 'Schwimmer', 'Bahnen VM', 'Bahnen NM', 'Vormittag', 'Nachmittag', 'Betrag'], ';');
     foreach ($zeilen as $r) {
         fputcsv($out, [
             $r['startnummer'], $r['schwimmer_name'],
+            $r['schwimmleistung_vormittag'], $r['schwimmleistung_nachmittag'],
             $euro($r['spendenbetrag_vormittag']), $euro($r['spendenbetrag_nachmittag']),
             $euro($r['betrag'])
         ], ';');
     }
-    fputcsv($out, ['Summe', '', $euro($sum_v), $euro($sum_n), $euro($sum_b)], ';');
+    fputcsv($out, ['Summe', '', '', '', $euro($sum_v), $euro($sum_n), $euro($sum_b)], ';');
     fclose($out);
     $conn->close();
     exit;
@@ -118,7 +122,8 @@ if (file_exists('includes/header.php')) {
 <div class="container">
     <h1>Details: <?php echo htmlspecialchars($spender[$namen_spalte]); ?></h1>
     <p><strong><?php echo $typ_label[$typ]; ?></strong>
-    <?php if ($typ !== 'sponsor' && $spender['limit'] !== null): ?>
+        &middot; Betrag pro Bahn: <?php echo number_format($spender['betrag_pro_bahn'], 2, ',', '.'); ?> €
+    <?php if ($spender['limit'] !== null): ?>
         &middot; Limit: <?php echo htmlspecialchars($spender['limit']); ?> €
     <?php endif; ?>
     </p>
@@ -135,6 +140,8 @@ if (file_exists('includes/header.php')) {
                 <tr>
                     <th>Startnr.</th>
                     <th>Schwimmer</th>
+                    <th>Bahnen VM</th>
+                    <th>Bahnen NM</th>
                     <th>Vormittag</th>
                     <th>Nachmittag</th>
                     <th>Betrag</th>
@@ -146,19 +153,21 @@ if (file_exists('includes/header.php')) {
                         <tr>
                             <td><strong><?php echo htmlspecialchars($r['startnummer']); ?></strong></td>
                             <td><?php echo htmlspecialchars($r['schwimmer_name']); ?></td>
+                            <td><?php echo htmlspecialchars($r['schwimmleistung_vormittag']); ?></td>
+                            <td><?php echo htmlspecialchars($r['schwimmleistung_nachmittag']); ?></td>
                             <td><?php echo number_format($r['spendenbetrag_vormittag'], 2, ',', '.'); ?> €</td>
                             <td><?php echo number_format($r['spendenbetrag_nachmittag'], 2, ',', '.'); ?> €</td>
                             <td><strong><?php echo number_format($r['betrag'], 2, ',', '.'); ?> €</strong></td>
                         </tr>
                     <?php endforeach; ?>
                     <tr style="font-weight: bold; background-color: #f0f0f0;">
-                        <td colspan="2">Summe</td>
+                        <td colspan="4">Summe</td>
                         <td><?php echo number_format($sum_v, 2, ',', '.'); ?> €</td>
                         <td><?php echo number_format($sum_n, 2, ',', '.'); ?> €</td>
                         <td><?php echo number_format($sum_b, 2, ',', '.'); ?> €</td>
                     </tr>
                 <?php else: ?>
-                    <tr><td colspan="5" class="no-data">Keine Daten vorhanden.</td></tr>
+                    <tr><td colspan="7" class="no-data">Keine Daten vorhanden.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>

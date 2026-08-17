@@ -1,8 +1,36 @@
 #!/usr/bin/env python3
-"""Erzeugt aus daten/datei.xlsx die Datei vaibad_2_testdaten_2025.sql.
+"""Erzeugt aus daten/vormittag.xlsx + daten/nachmittag.xlsx die Datei
+vaibad_2_testdaten_2025.sql.
 
-Liest die drei Stammdaten-Blaetter und schreibt INSERT-Befehle passend zum
-Schema in vaibad_2_database_setup.sql.
+Die Daten liegen ab 2025 in zwei getrennten Excel-Listen vor, eine fuer den
+Vormittag und eine fuer den Nachmittag. Beide Listen verwenden dieselben
+Schwimmer-Startnummern und haben denselben Aufbau (Blaetter und Spalten wie die
+fruehere einzelne datei.xlsx).
+
+Verarbeitung (zweistufig, wie vom Nutzer vorgegeben):
+
+1. Vormittags-Datei (daten/vormittag.xlsx):
+   - Leert alle Tabellen (idempotenter Reset der Testdaten).
+   - Legt die Schwimmer an, die in der Vormittags-Liste mit Stammdaten
+     (Name, Geburtstag, Mannschaft, Sponsoren) erfasst sind.
+   - Uebernimmt die vormittags geschwommenen Bahnen als
+     schwimmleistung_vormittag (Nachmittag = 0).
+   - Legt Sponsoren (pro Schwimmer-Sponsor-Paar) und Teams an.
+
+2. Nachmittags-Datei (daten/nachmittag.xlsx):
+   - Ergaenzt ausschliesslich die Nachmittags-Werte; loescht nichts.
+   - Schwimmer, die nur in der Nachmittags-Liste mit Stammdaten stehen (kein
+     Eintrag in der Vormittags-Liste), werden neu angelegt.
+   - Die nachmittags geschwommenen Bahnen werden als
+     schwimmleistung_nachmittag gesetzt (bestehende Vormittags-Bahnen bleiben
+     erhalten). Dafuer wird die Tabelle Schwimmer mit UPDATE je Startnummer
+     geschrieben; ein neu angelegter Schwimmer erhaelt vorher 0 fuer Vormittag.
+   - Zusaetzliche Sponsor-Paare, die nur in der Nachmittags-Liste stehen
+     (andere Sponsor-Nummern 1082-1133), werden ergaenzt (Union mit den
+     vorhandenen Paaren; Doppelungen pro Schwimmer werden verworfen).
+   - Teams werden aus der Vormittags-Datei uebernommen; die Nachmittags-Datei
+     enthaelt dieselben Teams (nur Spalte 508 weicht als leerer Platzhalter ab
+     und wird ohnehin ignoriert).
 
 WICHTIG zum Sponsoren-Modell (Stand: ohne Schema-Erweiterung):
 In der Datenbank hat jeder Sponsor genau einen globalen betrag_pro_bahn und
@@ -20,27 +48,30 @@ ueber die id. Eine manuelle Zusammenfuehrung gleichnamiger Sponsoren ist
 spaeter moeglich.
 
 Regeln (vom Nutzer vorgegeben):
-- Schwimmer: Nr <= 50 -> nur vormittags geschwommen (Bahnen = vormittag, nachmittag=0).
-  Nr > 50 -> nur nachmittags (Bahnen = nachmittag, vormittag=0).
-  Eine Summe "a+a" -> erste Zahl vormittags, zweite nachmittags.
-  Leere Bahnen -> 0/0.
+- Bahnen: Die Bahnen aus der Vormittags-Liste -> schwimmleistung_vormittag,
+  die Bahnen aus der Nachmittags-Liste -> schwimmleistung_nachmittag.
+  Eine Summe "a+a" in der Bahnen-Spalte wird nach wie vor aufgeteilt
+  (erste Zahl Vormittag, zweite Nachmittag); innerhalb einer Vormittags-Liste
+  ist das eher unueblich, wird aber toleriert.
 - Geburtstag -> Geburtsjahr (Jahreszahl) in der DB.
 - Mannschaft (Team-Nummer): kann mehrere Teams enthalten, getrennt durch Komma ODER Punkt
   (z.B. "503, 504" oder "503.505"). Schwimmer wird allen genannten Teams zugeordnet.
   Team 101/Platzhalter werden ignoriert. Schwimmer ohne Mannschaft = kein Team.
-- Sponsoren: Name aus der Sponsoren-Stammdaten-Tabelle; betrag_pro_bahn und limit
-  gelten PRO Schwimmer-Sponsor-Paar aus dem Schwimmer-Blatt.
-  Der "Max. Betrag" aus der Sponsoren-Stammdaten-Tabelle ist bedeutungslos (wird ignoriert).
+- Sponsoren: Name aus der Sponsoren-Stammdaten-Tabelle (Union beider Dateien);
+  betrag_pro_bahn und limit gelten PRO Schwimmer-Sponsor-Paar aus dem
+  jeweiligen Schwimmer-Blatt. Der "Max. Betrag" aus der Sponsoren-Stammdaten-
+  Tabelle ist bedeutungslos (wird ignoriert).
 - Hauptsponsoren: keine anlegen.
 - Teams: nur Teams mit echtem Namen anlegen (501-505). Platzhalter-Teams ab 506 leer -> weglassen.
 - Team-Mitglieder: aus Schwimmer-Blatt (Mannschaft-Spalte) ableiten, NICHT aus Team-Blatt
-  (das enthaellt 101-Platzhalter). Quelle der Wahrheit fuer die Zuordnung ist die
+  (das enthaelt 101-Platzhalter). Quelle der Wahrheit fuer die Zuordnung ist die
   Mannschaft-Spalte der Schwimmer.
 """
 import openpyxl
 import re
 
-XLSX = "daten/datei.xlsx"
+XLSX_VM = "daten/vormittag.xlsx"
+XLSX_NM = "daten/nachmittag.xlsx"
 OUT = "vaibad_2_testdaten_2025.sql"
 
 
@@ -69,15 +100,19 @@ def to_int(v):
     return int(m.group()) if m else None
 
 
-def parse_bahnen(bahnen, nr):
-    """Gibt (vormittag, nachmittag) zurueck."""
+def parse_bahnen(bahnen):
+    """Gibt den Roh-Wert der Bahnen als (vormittag, nachmittag) zurueck.
+
+    Da die Zuordnung Vormittag/Nachmittag nun ueber die jeweilige Datei
+    erfolgt (VM-Datei -> Vormittag, NM-Datei -> Nachmittag), wird hier nur
+    noch eine moegliche Summe 'a+a' aufgeteilt. Eine einfache Zahl aus der
+    Vormittags-Datei landet komplett in vormittag, eine aus der
+    Nachmittags-Datei komplett in nachmittag.
+    """
     if bahnen is None:
         return (0, 0)
     if isinstance(bahnen, (int, float)):
-        b = int(bahnen)
-        if nr is not None and nr <= 50:
-            return (b, 0)
-        return (0, b)
+        return (int(bahnen), 0)
     # String: moegliche Summe "a+a"
     s = str(bahnen).replace(" ", "")
     if "+" in s:
@@ -88,13 +123,9 @@ def parse_bahnen(bahnen, nr):
             return (v, n)
         except ValueError:
             pass
-    # einfache Zahl als String
     m = re.search(r"\d+", s)
     if m:
-        b = int(m.group())
-        if nr is not None and nr <= 50:
-            return (b, 0)
-        return (0, b)
+        return (int(m.group()), 0)
     return (0, 0)
 
 
@@ -118,83 +149,34 @@ def parse_teams(mannschaft):
     return teams
 
 
-def main():
-    wb = openpyxl.load_workbook(XLSX, data_only=True)
+def read_schwimmer(fn):
+    """Liest das Blatt 'Stammdaten - Schwimmer' einer Datei.
 
-    # ---- Sponsor-Namen einlesen (Nr -> Name) ----
-    # Nur der Name interessiert; betrag_pro_bahn und limit werden pro Paar
-    # aus dem Schwimmer-Blatt bezogen.
-    ws_sp = wb["Stammdaten - Sponsoren"]
-    sponsor_name = {}  # nr -> name (firma + vertreter)
-    for r in range(4, ws_sp.max_row + 1):
-        nr = ws_sp.cell(r, 1).value
-        name = ws_sp.cell(r, 2).value
-        vertreter = ws_sp.cell(r, 3).value
+    Liefert dict startnummer -> Datensatz mit Stammdaten, Bahnen, Teams und
+    Sponsor-Paaren. Die Bahnen bleiben als Roh-Wert stehen; die Aufteilung in
+    Vormittag/Nachmittag erfolgt erst beim Zusammenfuehren (je nach Datei).
+    """
+    wb = openpyxl.load_workbook(fn, data_only=True)
+    ws = wb["Stammdaten - Schwimmer"]
+    out = {}
+    for r in range(4, ws.max_row + 1):
+        nr = ws.cell(r, 1).value
         if nr is None:
             continue
         nr = to_int(nr)
         if nr is None:
             continue
-        if name is None and vertreter is None:
-            continue  # leerer Eintrag
-        # Name zusammenbauen: "Firma - Vertreter" oder nur Firma oder nur Vertreter
-        parts = []
-        if name:
-            parts.append(str(name).strip())
-        if vertreter:
-            parts.append(str(vertreter).strip())
-        full_name = " - ".join(parts) if len(parts) == 2 else parts[0]
-        sponsor_name[nr] = full_name
-
-    # ---- Teams einlesen (nur echte Teams mit Namen) ----
-    ws_tm = wb["Stammdaten Teams"]
-    teams = {}  # nr -> dict(name, betrag_pro_bahn)
-    for r in range(4, ws_tm.max_row + 1):
-        nr = ws_tm.cell(r, 1).value
-        name = ws_tm.cell(r, 2).value
-        betrag = ws_tm.cell(r, 6).value  # Spalte F = Spende pro Bahn
-        if nr is None:
-            continue
-        nr = to_int(nr)
-        if nr is None:
-            continue
-        if name is None:
-            continue  # Platzhalter-Team ohne Namen -> ueberspringen
-        # betrag_pro_bahn: Default 0.50 falls nicht gesetzt
-        if betrag is None:
-            betrag = 0.50
-        teams[nr] = {"name": str(name).strip(), "betrag": float(betrag)}
-
-    # ---- Schwimmer einlesen ----
-    ws_sw = wb["Stammdaten - Schwimmer"]
-    schwimmer = []  # list of dict
-    for r in range(4, ws_sw.max_row + 1):
-        nr = ws_sw.cell(r, 1).value
-        if nr is None:
-            continue
-        nr = to_int(nr)
-        if nr is None:
-            continue
-        name = ws_sw.cell(r, 2).value  # Nachname
-        vorname = ws_sw.cell(r, 3).value
-        if name is None and vorname is None:
-            continue  # leerer Schwimmer
-        gb = ws_sw.cell(r, 4).value
-        if hasattr(gb, "year"):
-            jahr = gb.year
-        else:
-            j = to_int(gb)
-            jahr = j if j else 0
-        mannschaft = ws_sw.cell(r, 5).value
-        bahnen = ws_sw.cell(r, 6).value
-        vm, nm = parse_bahnen(bahnen, nr)
-        team_list = parse_teams(mannschaft)
-        # Sponsor-Bloecke: G,H,I,J | K,L,M,N | O,P,Q,R | S,T,U,V
+        name = ws.cell(r, 2).value  # Nachname
+        vorname = ws.cell(r, 3).value
+        gb = ws.cell(r, 4).value
+        mannschaft = ws.cell(r, 5).value
+        bahnen = ws.cell(r, 6).value
+        # Sponsor-Bloecke: G,H,I,J | K,L,M,N | O,P,Q,R | S,T,U,V | W,X,Y,Z
         sponsoren_list = []
-        for start in (7, 11, 15, 19):
-            snr = ws_sw.cell(r, start).value
-            spb = ws_sw.cell(r, start + 1).value  # spendehoehe pro bahn
-            mx = ws_sw.cell(r, start + 2).value   # max betrag (limit) pro paar
+        for start in (7, 11, 15, 19, 23):
+            snr = ws.cell(r, start).value
+            spb = ws.cell(r, start + 1).value  # spendehoehe pro bahn
+            mx = ws.cell(r, start + 2).value    # max betrag (limit) pro paar
             if snr is None:
                 continue
             snr_i = to_int(snr)
@@ -212,25 +194,187 @@ def main():
                 "betrag_pro_bahn": spb_f,
                 "limit": mx_i,
             })
-        schwimmer.append({
+        out[nr] = {
             "nr": nr,
             "nachname": str(name).strip() if name else "",
             "vorname": str(vorname).strip() if vorname else "",
-            "geburtsjahr": jahr,
-            "vm": vm,
-            "nm": nm,
-            "teams": team_list,
+            "geburtsjahr": gb,
+            "mannschaft": mannschaft,
+            "bahnen": bahnen,
+            "teams": parse_teams(mannschaft),
             "sponsoren": sponsoren_list,
-        })
+        }
+    return out
+
+
+def geburtsjahr(gb):
+    if hasattr(gb, "year"):
+        return gb.year
+    j = to_int(gb)
+    return j if j else 0
+
+
+def read_sponsor_names(fn):
+    """Liest Blatt 'Stammdaten - Sponsoren': nr -> name (firma + vertreter)."""
+    wb = openpyxl.load_workbook(fn, data_only=True)
+    ws = wb["Stammdaten - Sponsoren"]
+    out = {}
+    for r in range(4, ws.max_row + 1):
+        nr = ws.cell(r, 1).value
+        name = ws.cell(r, 2).value
+        vertreter = ws.cell(r, 3).value
+        if nr is None:
+            continue
+        nr = to_int(nr)
+        if nr is None:
+            continue
+        if name is None and vertreter is None:
+            continue  # leerer Eintrag
+        parts = []
+        if name:
+            parts.append(str(name).strip())
+        if vertreter:
+            parts.append(str(vertreter).strip())
+        full_name = " - ".join(parts) if len(parts) == 2 else parts[0]
+        out[nr] = full_name
+    return out
+
+
+def read_teams(fn):
+    """Liest Blatt 'Stammdaten Teams': nr -> dict(name, betrag_pro_bahn).
+
+    Nur Teams mit echtem Namen werden zurueckgegeben.
+    """
+    wb = openpyxl.load_workbook(fn, data_only=True)
+    ws = wb["Stammdaten Teams"]
+    out = {}
+    for r in range(4, ws.max_row + 1):
+        nr = ws.cell(r, 1).value
+        name = ws.cell(r, 2).value
+        betrag = ws.cell(r, 6).value  # Spalte F = Spende pro Bahn
+        if nr is None:
+            continue
+        nr = to_int(nr)
+        if nr is None:
+            continue
+        if name is None:
+            continue  # Platzhalter-Team ohne Namen -> ueberspringen
+        if betrag is None:
+            betrag = 0.50
+        out[nr] = {"name": str(name).strip(), "betrag": float(betrag)}
+    return out
+
+
+def merge_sponsor_names(*name_dicts):
+    """Vereint die Sponsor-Namen-Listen aller Dateien (nr -> name)."""
+    merged = {}
+    for d in name_dicts:
+        for nr, name in d.items():
+            if nr not in merged:
+                merged[nr] = name
+    return merged
+
+
+def main():
+    # ---- Quellen einlesen ----
+    vm = read_schwimmer(XLSX_VM)
+    nm = read_schwimmer(XLSX_NM)
+    sponsor_name = merge_sponsor_names(
+        read_sponsor_names(XLSX_VM),
+        read_sponsor_names(XLSX_NM),
+    )
+    teams = read_teams(XLSX_VM)  # identisch in beiden Dateien
+
+    # ---- Schwimmer zusammenfuehren ----
+    # Phase 1 (Vormittags-Datei): alle Schwimmer mit Stammdaten aus VM anlegen,
+    # Vormittags-Bahnen uebernehmen. Phase 2 (Nachmittags-Datei): bei bereits
+    # angelegten Schwimmern die Nachmittags-Bahnen ergaenzen und zusaetzliche
+    # Sponsor-Paare hinzufuegen; reine Nachmittags-Schwimmer neu anlegen.
+    angelegt = {}  # startnummer -> datensatz (wie angelegt)
+
+    # Summenzeilen in der Vormittags-Liste erkennen: Eine VM-Zeile ohne Namen,
+    # deren Bahnen-Wert exakt der Summe der Bahnen aller vorherigen VM-Zeilen
+    # entspricht, ist eine Excel-Summenzeile (kein echter Schwimmer). Solche
+    # Zeilen werden beim Anlegen aus VM uebersprungen; stehen fuer dieselbe
+    # Startnummer echte Daten in der Nachmittags-Liste, wird der Schwimmer
+    # dort sauber als reiner Nachmittags-Schwimmer angelegt.
+    vm_bahnen_summe = 0
+    summenzeilen_nr = set()
+
+    for nr, s in vm.items():
+        bahnen_wert = parse_bahnen(s["bahnen"])[0]
+        ist_summenzeile = (
+            not s["nachname"] and not s["vorname"]
+            and bahnen_wert == vm_bahnen_summe and bahnen_wert > 0
+        )
+        if ist_summenzeile:
+            summenzeilen_nr.add(nr)
+            continue  # Summenzeile nicht als Schwimmer anlegen
+        vm_bahnen_summe += bahnen_wert
+        angelegt[nr] = {
+            "nr": nr,
+            "nachname": s["nachname"],
+            "vorname": s["vorname"],
+            "geburtsjahr": geburtsjahr(s["geburtsjahr"]),
+            "vm": bahnen_wert,
+            "nm": 0,
+            "teams": list(s["teams"]),
+            "sponsoren": list(s["sponsoren"]),
+            "quelle": "vm",
+        }
+
+    for nr, s in nm.items():
+        if nr in angelegt:
+            # bereits aus VM angelegt -> NM-Bahnen + zusaetzliche Sponsoren
+            angelegt[nr]["nm"] = parse_bahnen(s["bahnen"])[0]
+            bestaehend = {p["sponsoren_nr"] for p in angelegt[nr]["sponsoren"]}
+            for sp in s["sponsoren"]:
+                if sp["sponsoren_nr"] in bestaehend:
+                    continue
+                bestaehend.add(sp["sponsoren_nr"])
+                angelegt[nr]["sponsoren"].append(sp)
+            # Falls der Schwimmer in VM keinen Namen hatte (leerer Platzhalter),
+            # uebernehmen wir Name/Geburtstag/Teams aus NM, sofern vorhanden.
+            if not angelegt[nr]["nachname"] and not angelegt[nr]["vorname"]:
+                if s["nachname"] or s["vorname"]:
+                    angelegt[nr]["nachname"] = s["nachname"]
+                    angelegt[nr]["vorname"] = s["vorname"]
+                    angelegt[nr]["geburtsjahr"] = geburtsjahr(s["geburtsjahr"])
+                    angelegt[nr]["teams"] = list(s["teams"])
+        else:
+            # Reiner Nachmittags-Schwimmer: neu anlegen.
+            angelegt[nr] = {
+                "nr": nr,
+                "nachname": s["nachname"],
+                "vorname": s["vorname"],
+                "geburtsjahr": geburtsjahr(s["geburtsjahr"]),
+                "vm": 0,
+                "nm": parse_bahnen(s["bahnen"])[0],
+                "teams": list(s["teams"]),
+                "sponsoren": list(s["sponsoren"]),
+                "quelle": "nm",
+            }
+
+    # Schwimmer ohne jeden Namen verwerfen (leere Platzhalter-Zeilen)
+    angelegt = {nr: s for nr, s in angelegt.items()
+                if s["nachname"] or s["vorname"]}
+    schwimmer = [angelegt[nr] for nr in sorted(angelegt)]
 
     # ---- SQL schreiben ----
     lines = []
     lines.append("-- Testdaten fuer vaibad_2 (Sponsorenschwimmen 2025)")
-    lines.append("-- Automatisch erzeugt aus daten/datei.xlsx")
+    lines.append("-- Automatisch erzeugt aus daten/vormittag.xlsx + daten/nachmittag.xlsx")
+    lines.append("--")
+    lines.append("-- Zwei-Phasen-Verarbeitung:")
+    lines.append("--   1) Vormittags-Datei: leert die Tabellen und schreibt Schwimmer,")
+    lines.append("--      Vormittags-Bahnen, Sponsoren und Teams.")
+    lines.append("--   2) Nachmittags-Datei: ergaenzt Nachmittags-Bahnen, legt reine")
+    lines.append("--      Nachmittags-Schwimmer neu an und fuegt zusaetzliche Sponsor-Paare")
+    lines.append("--      hinzu (Union, keine Doppelungen).")
     lines.append("--")
     lines.append("-- Regeln:")
-    lines.append("--   * Schwimmer Nr<=50: nur vormittags geschwommen.")
-    lines.append("--   * Schwimmer Nr>50:  nur nachmittags geschwommen.")
+    lines.append("--   * Bahnen aus der Vormittags-Liste -> schwimmleistung_vormittag.")
+    lines.append("--   * Bahnen aus der Nachmittags-Liste -> schwimmleistung_nachmittag.")
     lines.append("--   * Summe 'a+a' in Bahnen-Spalte: a vormittags + a nachmittags.")
     lines.append("--   * Sponsoren werden PRO Schwimmer-Sponsor-Paar angelegt:")
     lines.append("--     gleicher Name, aber eigener betrag_pro_bahn und limit pro Paar.")
@@ -246,7 +390,9 @@ def main():
     lines.append("")
     lines.append("USE vaibad_2;")
     lines.append("")
-    lines.append("-- Bestehende Testdaten loeschen (idempotent, in abhaengiger Reihenfolge).")
+    lines.append("-- Bestehende Testdaten loeschen (idempotenter Reset der Testdaten).")
+    lines.append("-- Dies wird durch die Vormittags-Datei veranlasst: Sie leert die")
+    lines.append("-- Datenbank und schreibt sie anschliessend neu.")
     lines.append("DELETE FROM spenden_hauptsponsoren;")
     lines.append("DELETE FROM spenden_teams;")
     lines.append("DELETE FROM spenden_sponsoren;")
@@ -265,8 +411,14 @@ def main():
     lines.append("ALTER TABLE schwimmer_team AUTO_INCREMENT = 1;")
     lines.append("")
 
-    # --- Schwimmer einfuegen (zuerst, damit die Sponsor-Paare referenzieren koennen) ---
+    # --- Schwimmer einfuegen ---
+    # Die Vormittags-Bahnen stammen aus der Vormittags-Datei; die
+    # Nachmittags-Bahnen werden direkt mit eingetragen (aus der Nachmittags-
+    # Datei), da die Schwimmer vor der Sponsor-Verknuepfung vollstaendig
+    # vorliegen muessen und die Werte bereits zusammengefuehrt sind.
     lines.append(f"-- Schwimmer ({len(schwimmer)} Eintraege)")
+    lines.append("-- Vormittags-Bahnen aus daten/vormittag.xlsx,")
+    lines.append("-- Nachmittags-Bahnen aus daten/nachmittag.xlsx.")
     lines.append("INSERT INTO Schwimmer (startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag) VALUES")
     sw_rows = []
     for s in schwimmer:
@@ -282,21 +434,22 @@ def main():
         schwimmer_id_map[s["nr"]] = idx
 
     # --- Sponsoren einfuegen: PRO Schwimmer-Sponsor-Paar ein eigener Datensatz ---
-    # Name stammt aus der Sponsoren-Stammdaten-Tabelle; betrag_pro_bahn und limit
-    # aus dem jeweiligen Schwimmer-Blatt-Eintrag. Sponsoren mit unterschiedlichen
-    # Konditionen werden mehrfach (gleicher Name, unterschiedliche id) angelegt.
-    # Sponsoren: fuer jede einmalige Kombination (name, betrag_pro_bahn, limit)
-    # wird EIN Sponsor-Datensatz angelegt. Ein neuer Sponsor entsteht nur, wenn
-    # sich bei gleichem Namen der Spendenbetrag oder das Limit aendert; sind beide
-    # gleich, wird dieselbe sponsoren_id wiederverwendet (manuelle Zusammenfuehrung
-    # gleichnamiger Sponsoren mit unterschiedlichen Konditionen bleibt moeglich).
+    # Name stammt aus der Sponsoren-Stammdaten-Tabelle (Union beider Dateien);
+    # betrag_pro_bahn und limit aus dem jeweiligen Schwimmer-Blatt-Eintrag.
+    # Sponsoren mit unterschiedlichen Konditionen werden mehrfach (gleicher Name,
+    # unterschiedliche id) angelegt. Sponsoren: fuer jede einmalige Kombination
+    # (name, betrag_pro_bahn, limit) wird EIN Sponsor-Datensatz angelegt. Ein
+    # neuer Sponsor entsteht nur, wenn sich bei gleichem Namen der Spendenbetrag
+    # oder das Limit aendert; sind beide gleich, wird dieselbe sponsoren_id
+    # wiederverwendet (manuelle Zusammenfuehrung gleichnamiger Sponsoren mit
+    # unterschiedlichen Konditionen bleibt moeglich).
     sponsor_rows = []  # list of (name, betrag_pro_bahn, limit)
     sponsor_key_to_id = {}  # (name, betrag_pro_bahn, limit) -> sponsoren_id
     verknuepfungen = []  # list of (schwimmer_id, sponsoren_id)
     missing_names = set()
     for s in schwimmer:
         sid = schwimmer_id_map[s["nr"]]
-        # Doppelte Sponsor-Zuordnungen pro Schwimmer bereinigen (z.B. Nr.18 hat 1015 doppelt)
+        # Doppelte Sponsor-Zuordnungen pro Schwimmer bereinigen
         seen = set()
         for sp in s["sponsoren"]:
             key = sp["sponsoren_nr"]
@@ -388,6 +541,8 @@ def main():
     print(f"Schwimmer: {len(schwimmer)}", file=sys.stderr)
     print(f"Schwimmer-Sponsor-Paare: {len(verknuepfungen)}", file=sys.stderr)
     print(f"Schwimmer-Team-Paare: {len(tpairs)}", file=sys.stderr)
+    if summenzeilen_nr:
+        print(f"Hinweis: Vormittags-Summenzeilen ignoriert (Startnr): {sorted(summenzeilen_nr)}", file=sys.stderr)
     if missing_names:
         print(f"WARN: Sponsoren-Nrn ohne Eintrag in Sponsoren-Tabelle: {sorted(missing_names)}", file=sys.stderr)
     # gleichnamige Sponsoren (Hinweis fuer manuelle Zusammenfuehrung)

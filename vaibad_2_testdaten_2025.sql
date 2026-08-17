@@ -118,7 +118,7 @@ INSERT INTO Schwimmer (startnummer, vorname, nachname, geburtsjahr, schwimmleist
   (67, 'Annegret', 'Siebert-Rieger', 1952, 20, 0),
   (68, 'Jochen', 'Michaelis', 2003, 30, 0),
   (69, 'Nick', 'Müller', 2004, 30, 0),
-  (70, 'Karin', 'Klick', 1961, 3116, 36),
+  (70, 'Karin', 'Klick', 1961, 0, 36),
   (71, 'Inge', 'Zimmermann', 1958, 0, 22),
   (72, 'Annette', 'Schmid', 1983, 0, 44),
   (73, '66', '', 0, 0, 74),

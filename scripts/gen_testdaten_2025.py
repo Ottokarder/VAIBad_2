@@ -292,13 +292,31 @@ def main():
     # Sponsor-Paare hinzufuegen; reine Nachmittags-Schwimmer neu anlegen.
     angelegt = {}  # startnummer -> datensatz (wie angelegt)
 
+    # Summenzeilen in der Vormittags-Liste erkennen: Eine VM-Zeile ohne Namen,
+    # deren Bahnen-Wert exakt der Summe der Bahnen aller vorherigen VM-Zeilen
+    # entspricht, ist eine Excel-Summenzeile (kein echter Schwimmer). Solche
+    # Zeilen werden beim Anlegen aus VM uebersprungen; stehen fuer dieselbe
+    # Startnummer echte Daten in der Nachmittags-Liste, wird der Schwimmer
+    # dort sauber als reiner Nachmittags-Schwimmer angelegt.
+    vm_bahnen_summe = 0
+    summenzeilen_nr = set()
+
     for nr, s in vm.items():
+        bahnen_wert = parse_bahnen(s["bahnen"])[0]
+        ist_summenzeile = (
+            not s["nachname"] and not s["vorname"]
+            and bahnen_wert == vm_bahnen_summe and bahnen_wert > 0
+        )
+        if ist_summenzeile:
+            summenzeilen_nr.add(nr)
+            continue  # Summenzeile nicht als Schwimmer anlegen
+        vm_bahnen_summe += bahnen_wert
         angelegt[nr] = {
             "nr": nr,
             "nachname": s["nachname"],
             "vorname": s["vorname"],
             "geburtsjahr": geburtsjahr(s["geburtsjahr"]),
-            "vm": parse_bahnen(s["bahnen"])[0],
+            "vm": bahnen_wert,
             "nm": 0,
             "teams": list(s["teams"]),
             "sponsoren": list(s["sponsoren"]),
@@ -523,6 +541,8 @@ def main():
     print(f"Schwimmer: {len(schwimmer)}", file=sys.stderr)
     print(f"Schwimmer-Sponsor-Paare: {len(verknuepfungen)}", file=sys.stderr)
     print(f"Schwimmer-Team-Paare: {len(tpairs)}", file=sys.stderr)
+    if summenzeilen_nr:
+        print(f"Hinweis: Vormittags-Summenzeilen ignoriert (Startnr): {sorted(summenzeilen_nr)}", file=sys.stderr)
     if missing_names:
         print(f"WARN: Sponsoren-Nrn ohne Eintrag in Sponsoren-Tabelle: {sorted(missing_names)}", file=sys.stderr)
     # gleichnamige Sponsoren (Hinweis fuer manuelle Zusammenfuehrung)

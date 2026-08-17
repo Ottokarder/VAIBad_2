@@ -4,7 +4,7 @@ require_once 'config.php';
 
 // Schwimmer-ID prüfen
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header("Location: /VAIBad_2/webapp/schwimmerliste.php");
+    header("Location: /schwimmerliste.php");
     exit();
 }
 $id = intval($_GET['id']);
@@ -18,7 +18,7 @@ $schwimmer = $result->fetch_assoc();
 $stmt->close();
 
 if (!$schwimmer) {
-    header("Location: /VAIBad_2/webapp/schwimmerliste.php");
+    header("Location: /schwimmerliste.php");
     exit();
 }
 
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $team_insert->close();
         }
         // Weiterleitung zur Schwimmerliste
-        header("Location: /VAIBad_2/webapp/schwimmerliste.php");
+        header("Location: /schwimmerliste.php");
         exit();
     }
 }
@@ -87,7 +87,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Schwimmer bearbeiten - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -108,7 +108,7 @@ if (file_exists('includes/header.php')) {
     <?php endif; ?>
 
     <!-- Formular -->
-    <form method="POST" action="/VAIBad_2/webapp/bearbeiten_schwimmer.php?id=<?php echo $id; ?>" class="form">
+    <form method="POST" action="/bearbeiten_schwimmer.php?id=<?php echo $id; ?>" class="form">
         <div class="form-group">
             <label for="startnummer">Startnummer:</label>
             <input type="text" id="startnummer" name="startnummer"
@@ -174,7 +174,7 @@ if (file_exists('includes/header.php')) {
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Speichern</button>
-            <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>
+            <a href="/schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>
         </div>
     </form>
 
@@ -206,7 +206,7 @@ if (file_exists('includes/header.php')) {
                                 <?php echo ($verknuepfung['limit'] !== null) ? htmlspecialchars($verknuepfung['limit']) : 'Ohne Limit'; ?>
                             </td>
                             <td class="actions">
-                                <a href="/VAIBad_2/webapp/entfernen_verknuepfung.php?schwimmer_id=<?php echo $id; ?>&sponsor_id=<?php echo $verknuepfung['id']; ?>"
+                                <a href="/entfernen_verknuepfung.php?schwimmer_id=<?php echo $id; ?>&sponsor_id=<?php echo $verknuepfung['id']; ?>"
                                    class="btn btn-delete"
                                    onclick="return confirm('Möchtest du diese Verknüpfung wirklich entfernen?')"
                                    title="Verknüpfung entfernen">
@@ -264,7 +264,7 @@ if (file_exists('includes/header.php')) {
                                 <?php echo ($team_verknuepfung['limit'] !== null) ? htmlspecialchars($team_verknuepfung['limit']) : 'Ohne Limit'; ?>
                             </td>
                             <td class="actions">
-                                <a href="/VAIBad_2/webapp/entfernen_verknuepfung_team.php?schwimmer_id=<?php echo $id; ?>&team_id=<?php echo $team_verknuepfung['id']; ?>"
+                                <a href="/entfernen_verknuepfung_team.php?schwimmer_id=<?php echo $id; ?>&team_id=<?php echo $team_verknuepfung['id']; ?>"
                                    class="btn btn-delete"
                                    onclick="return confirm('Möchtest du diese Team-Zuordnung wirklich entfernen?')"
                                    title="Team-Zuordnung entfernen">

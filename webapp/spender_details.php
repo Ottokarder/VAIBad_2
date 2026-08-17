@@ -9,7 +9,7 @@ $typ = isset($_GET['typ']) ? $_GET['typ'] : '';
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 if (!in_array($typ, ['sponsor', 'team', 'hauptsponsor'], true) || $id <= 0) {
-    header("Location: /VAIBad_2/webapp/spendenlisten.php");
+    header("Location: /spendenlisten.php");
     exit();
 }
 
@@ -39,7 +39,7 @@ $spender = $res->fetch_assoc();
 $stmt->close();
 
 if (!$spender) {
-    header("Location: /VAIBad_2/webapp/spendenlisten.php");
+    header("Location: /spendenlisten.php");
     exit();
 }
 
@@ -117,7 +117,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Details ' . htmlspecialchars($spender[$namen_spalte]) . ' - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -132,9 +132,9 @@ if (file_exists('includes/header.php')) {
     </p>
 
     <div class="action-bar">
-        <a href="/VAIBad_2/webapp/spender_details.php?typ=<?php echo $typ; ?>&id=<?php echo $id; ?>&export=csv" class="btn btn-primary">Als CSV herunterladen</a>
-        <a href="/VAIBad_2/webapp/spendenlisten.php" class="btn btn-secondary">Zurück zu den Spendenlisten</a>
-        <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+        <a href="/spender_details.php?typ=<?php echo $typ; ?>&id=<?php echo $id; ?>&export=csv" class="btn btn-primary">Als CSV herunterladen</a>
+        <a href="/spendenlisten.php" class="btn btn-secondary">Zurück zu den Spendenlisten</a>
+        <a href="/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
     <div class="table-container" style="margin-top: 2rem;">

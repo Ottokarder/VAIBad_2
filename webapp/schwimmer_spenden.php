@@ -4,7 +4,7 @@ require_once 'config.php';
 
 // Schwimmer-ID prüfen
 if (!isset($_GET['schwimmer_id']) || !is_numeric($_GET['schwimmer_id'])) {
-    header("Location: /VAIBad_2/webapp/schwimmerliste.php");
+    header("Location: /schwimmerliste.php");
     exit();
 }
 
@@ -23,7 +23,7 @@ $schwimmer = $result->fetch_assoc();
 $stmt->close();
 
 if (!$schwimmer) {
-    header("Location: /VAIBad_2/webapp/schwimmerliste.php");
+    header("Location: /schwimmerliste.php");
     exit();
 }
 
@@ -103,7 +103,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Spenden ' . htmlspecialchars($schwimmer['vorname'] . ' ' . $schwimmer['nachname']) . ' - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -112,9 +112,9 @@ if (file_exists('includes/header.php')) {
     <h1>Spenden von <?php echo htmlspecialchars($schwimmer['vorname'] . ' ' . $schwimmer['nachname']); ?></h1>
 
     <div class="action-bar">
-        <a href="/VAIBad_2/webapp/schwimmer_spenden.php?schwimmer_id=<?php echo $schwimmer_id; ?>&export=csv" class="btn btn-primary">Als CSV herunterladen</a>
-        <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-secondary">Zurück zur Schwimmerliste</a>
-        <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+        <a href="/schwimmer_spenden.php?schwimmer_id=<?php echo $schwimmer_id; ?>&export=csv" class="btn btn-primary">Als CSV herunterladen</a>
+        <a href="/schwimmerliste.php" class="btn btn-secondary">Zurück zur Schwimmerliste</a>
+        <a href="/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
     <!-- Schwimmerdaten -->
@@ -179,7 +179,7 @@ if (file_exists('includes/header.php')) {
                     <tr>
                         <td colspan="4" class="no-data">
                             Noch keine Sponsoren-Spenden für diesen Schwimmer berechnet.
-                            <a href="/VAIBad_2/webapp/spendenberechnung.php">Jetzt berechnen</a>
+                            <a href="/spendenberechnung.php">Jetzt berechnen</a>
                         </td>
                     </tr>
                 <?php endif; ?>

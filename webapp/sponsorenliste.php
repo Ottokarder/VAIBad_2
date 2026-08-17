@@ -9,7 +9,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: /VAIBad_2/webapp/sponsorenliste.php");
+    header("Location: /sponsorenliste.php");
     exit();
 }
 
@@ -39,7 +39,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Sponsorenliste - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -50,17 +50,17 @@ if (file_exists('includes/header.php')) {
 
     <!-- Button für neuen Sponsor und Startseite -->
     <div class="action-bar">
-        <a href="/VAIBad_2/webapp/neuer_sponsor.php" class="btn btn-primary">Neuer Sponsor</a>
-        <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+        <a href="/neuer_sponsor.php" class="btn btn-primary">Neuer Sponsor</a>
+        <a href="/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
     <!-- Filter -->
     <div class="action-bar" style="margin-bottom: 1rem;">
-        <form method="GET" action="/VAIBad_2/webapp/sponsorenliste.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+        <form method="GET" action="/sponsorenliste.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
             <input type="text" name="filter" placeholder="Filter (Sponsorname)..." value="<?php echo htmlspecialchars($filter); ?>" style="flex:1; min-width:200px; padding:.4rem .6rem;">
             <button type="submit" class="btn btn-primary">Filtern</button>
             <?php if ($filter !== ''): ?>
-                <a href="/VAIBad_2/webapp/sponsorenliste.php" class="btn btn-secondary">Zurücksetzen</a>
+                <a href="/sponsorenliste.php" class="btn btn-secondary">Zurücksetzen</a>
             <?php endif; ?>
         </form>
     </div>
@@ -85,12 +85,12 @@ if (file_exists('includes/header.php')) {
                             <td><?php echo ($row['limit'] !== null) ? htmlspecialchars($row['limit']) : 'Ohne Limit'; ?></td>
                             <td class="actions">
                                 <!-- Bearbeiten-Button -->
-                                <a href="/VAIBad_2/webapp/bearbeiten_sponsor.php?id=<?php echo $row['id']; ?>"
+                                <a href="/bearbeiten_sponsor.php?id=<?php echo $row['id']; ?>"
                                    class="btn btn-edit" title="Bearbeiten">
                                     Bearbeiten
                                 </a>
                                 <!-- Löschen-Button -->
-                                <a href="/VAIBad_2/webapp/sponsorenliste.php?action=delete&id=<?php echo $row['id']; ?>"
+                                <a href="/sponsorenliste.php?action=delete&id=<?php echo $row['id']; ?>"
                                    class="btn btn-delete"
                                    onclick="return confirm('Möchtest du diesen Sponsor wirklich löschen?')"
                                    title="Löschen">

@@ -9,7 +9,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: /VAIBad_2/webapp/teams.php");
+    header("Location: /teams.php");
     exit();
 }
 
@@ -39,7 +39,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Teams - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -50,17 +50,17 @@ if (file_exists('includes/header.php')) {
 
     <!-- Button für neues Team und Startseite -->
     <div class="action-bar">
-        <a href="/VAIBad_2/webapp/neues_team.php" class="btn btn-primary">Neues Team</a>
-        <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+        <a href="/neues_team.php" class="btn btn-primary">Neues Team</a>
+        <a href="/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
     <!-- Filter -->
     <div class="action-bar" style="margin-bottom: 1rem;">
-        <form method="GET" action="/VAIBad_2/webapp/teams.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+        <form method="GET" action="/teams.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
             <input type="text" name="filter" placeholder="Filter (Teamname)..." value="<?php echo htmlspecialchars($filter); ?>" style="flex:1; min-width:200px; padding:.4rem .6rem;">
             <button type="submit" class="btn btn-primary">Filtern</button>
             <?php if ($filter !== ''): ?>
-                <a href="/VAIBad_2/webapp/teams.php" class="btn btn-secondary">Zurücksetzen</a>
+                <a href="/teams.php" class="btn btn-secondary">Zurücksetzen</a>
             <?php endif; ?>
         </form>
     </div>
@@ -85,12 +85,12 @@ if (file_exists('includes/header.php')) {
                             <td><?php echo ($row['limit'] !== null) ? htmlspecialchars($row['limit']) : 'Ohne Limit'; ?></td>
                             <td class="actions">
                                 <!-- Bearbeiten-Button -->
-                                <a href="/VAIBad_2/webapp/bearbeiten_team.php?id=<?php echo $row['id']; ?>"
+                                <a href="/bearbeiten_team.php?id=<?php echo $row['id']; ?>"
                                    class="btn btn-edit" title="Bearbeiten">
                                     Bearbeiten
                                 </a>
                                 <!-- Löschen-Button -->
-                                <a href="/VAIBad_2/webapp/teams.php?action=delete&id=<?php echo $row['id']; ?>"
+                                <a href="/teams.php?action=delete&id=<?php echo $row['id']; ?>"
                                    class="btn btn-delete"
                                    onclick="return confirm('Möchtest du dieses Team wirklich löschen? Schwimmer ohne Team-Zuordnung bleiben erhalten.')"
                                    title="Löschen">

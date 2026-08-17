@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $team_insert->close();
         }
         // Weiterleitung zur Schwimmerliste
-        header("Location: /VAIBad_2/webapp/schwimmerliste.php");
+        header("Location: /schwimmerliste.php");
         exit();
     }
 }
@@ -78,7 +78,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Neuer Schwimmer - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -99,7 +99,7 @@ if (file_exists('includes/header.php')) {
     <?php endif; ?>
 
     <!-- Formular -->
-    <form method="POST" action="/VAIBad_2/webapp/neuer_schwimmer.php" class="form">
+    <form method="POST" action="/neuer_schwimmer.php" class="form">
         <div class="form-group">
             <label for="vorname">Vorname:</label>
             <input type="text" id="vorname" name="vorname" required
@@ -153,7 +153,7 @@ if (file_exists('includes/header.php')) {
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Speichern</button>
-            <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>
+            <a href="/schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>
         </div>
     </form>
 </div>

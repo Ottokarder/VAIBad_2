@@ -9,7 +9,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: /VAIBad_2/webapp/hauptsponsorenliste.php");
+    header("Location: /hauptsponsorenliste.php");
     exit();
 }
 
@@ -27,7 +27,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Hauptsponsorenliste - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -38,8 +38,8 @@ if (file_exists('includes/header.php')) {
 
     <!-- Button für neuen Hauptsponsor und Startseite -->
     <div class="action-bar">
-        <a href="/VAIBad_2/webapp/neuer_hauptsponsor.php" class="btn btn-primary">Neuer Hauptsponsor</a>
-        <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+        <a href="/neuer_hauptsponsor.php" class="btn btn-primary">Neuer Hauptsponsor</a>
+        <a href="/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
     <!-- Tabelle mit Hauptsponsorendaten -->
@@ -62,13 +62,13 @@ if (file_exists('includes/header.php')) {
                             <td><?php echo ($row['limit'] !== null) ? htmlspecialchars($row['limit']) : 'Ohne Limit'; ?></td>
                             <td class="actions">
                                 <!-- Bearbeiten-Button -->
-                                <a href="/VAIBad_2/webapp/bearbeiten_hauptsponsor.php?id=<?php echo $row['id']; ?>"
+                                <a href="/bearbeiten_hauptsponsor.php?id=<?php echo $row['id']; ?>"
                                    class="btn btn-edit" title="Bearbeiten">
                                     Bearbeiten
                                 </a>
 
                                 <!-- Löschen-Button -->
-                                <a href="/VAIBad_2/webapp/hauptsponsorenliste.php?action=delete&id=<?php echo $row['id']; ?>"
+                                <a href="/hauptsponsorenliste.php?action=delete&id=<?php echo $row['id']; ?>"
                                    class="btn btn-delete"
                                    onclick="return confirm('Möchtest du diesen Hauptsponsor wirklich löschen?')"
                                    title="Löschen">

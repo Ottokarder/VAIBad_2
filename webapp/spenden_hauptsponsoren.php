@@ -113,7 +113,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Hauptsponsor-Spendenbeträge - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -122,9 +122,9 @@ if (file_exists('includes/header.php')) {
     <h1>Hauptsponsor-Spendenbeträge</h1>
 
     <div class="action-bar">
-        <a href="/VAIBad_2/webapp/spendenberechnung_hauptsponsoren.php" class="btn btn-primary">Neu berechnen</a>
-        <a href="/VAIBad_2/webapp/spenden_hauptsponsoren.php?export=csv" class="btn btn-primary">Als CSV herunterladen</a>
-        <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+        <a href="/spendenberechnung_hauptsponsoren.php" class="btn btn-primary">Neu berechnen</a>
+        <a href="/spenden_hauptsponsoren.php?export=csv" class="btn btn-primary">Als CSV herunterladen</a>
+        <a href="/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
     <?php if (!empty($gruppen)): ?>
@@ -194,7 +194,7 @@ if (file_exists('includes/header.php')) {
                     <tr>
                         <td colspan="6" class="no-data">
                             Noch keine Hauptsponsor-Spendenbeträge berechnet.
-                            <a href="/VAIBad_2/webapp/spendenberechnung_hauptsponsoren.php">Jetzt berechnen</a>
+                            <a href="/spendenberechnung_hauptsponsoren.php">Jetzt berechnen</a>
                         </td>
                     </tr>
                 </tbody>

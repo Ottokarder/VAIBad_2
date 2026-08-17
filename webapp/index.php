@@ -9,7 +9,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>VAIBad 2 - Startseite</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -19,20 +19,20 @@ if (file_exists('includes/header.php')) {
 <header class="site-header">
     <div class="header-container">
         <div class="logo">
-            <a href="/VAIBad_2/webapp/index.php">
+            <a href="/index.php">
                 <h1>VAIBad 2</h1>
             </a>
         </div>
         <nav class="main-nav">
             <ul>
-                <li><a href="/VAIBad_2/webapp/index.php" class="active">Startseite</a></li>
-                <li><a href="/VAIBad_2/webapp/schwimmerliste.php">Schwimmer</a></li>
-                <li><a href="/VAIBad_2/webapp/sponsorenliste.php">Sponsoren</a></li>
-                <li><a href="/VAIBad_2/webapp/hauptsponsorenliste.php">Hauptsponsoren</a></li>
-                <li><a href="/VAIBad_2/webapp/teams.php">Teams</a></li>
-                <li><a href="/VAIBad_2/webapp/spenden_sponsoren.php">Spenden</a></li>
-                <li><a href="/VAIBad_2/webapp/auswertungen.php">Auswertungen</a></li>
-                <li><a href="/VAIBad_2/webapp/spendenlisten.php">Spendenlisten</a></li>
+                <li><a href="/index.php" class="active">Startseite</a></li>
+                <li><a href="/schwimmerliste.php">Schwimmer</a></li>
+                <li><a href="/sponsorenliste.php">Sponsoren</a></li>
+                <li><a href="/hauptsponsorenliste.php">Hauptsponsoren</a></li>
+                <li><a href="/teams.php">Teams</a></li>
+                <li><a href="/spenden_sponsoren.php">Spenden</a></li>
+                <li><a href="/auswertungen.php">Auswertungen</a></li>
+                <li><a href="/spendenlisten.php">Spendenlisten</a></li>
             </ul>
         </nav>
     </div>
@@ -50,54 +50,54 @@ if (file_exists('includes/header.php')) {
         <div class="card">
             <h3>Teilnehmer</h3>
             <p>Verwalten Sie alle Schwimmer und ihre Leistungen.</p>
-            <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-primary">Zur Teilnehmerliste</a>
+            <a href="/schwimmerliste.php" class="btn btn-primary">Zur Teilnehmerliste</a>
         </div>
 
         <div class="card">
             <h3>Sponsoren</h3>
             <p>Verwalten Sie alle Sponsoren und ihre Beiträge.</p>
-            <a href="/VAIBad_2/webapp/sponsorenliste.php" class="btn btn-primary">Zur Sponsorenliste</a>
+            <a href="/sponsorenliste.php" class="btn btn-primary">Zur Sponsorenliste</a>
         </div>
 
         <div class="card">
             <h3>Hauptsponsoren</h3>
             <p>Verwalten Sie alle Hauptsponsoren und ihre Limits.</p>
-            <a href="/VAIBad_2/webapp/hauptsponsorenliste.php" class="btn btn-primary">Zur Hauptsponsorenliste</a>
+            <a href="/hauptsponsorenliste.php" class="btn btn-primary">Zur Hauptsponsorenliste</a>
         </div>
 
         <div class="card">
             <h3>Teams</h3>
             <p>Verwalten Sie alle Teams, deren Spendensummen und Limits.</p>
-            <a href="/VAIBad_2/webapp/teams.php" class="btn btn-primary">Zur Teamliste</a>
+            <a href="/teams.php" class="btn btn-primary">Zur Teamliste</a>
         </div>
 
         <div class="card">
             <h3>Spenden (Sponsoren)</h3>
             <p>Berechnen Sie die Spendenbeträge je Schwimmer und Sponsor.</p>
-            <a href="/VAIBad_2/webapp/spendenberechnung.php" class="btn btn-primary">Spenden berechnen</a>
-            <a href="/VAIBad_2/webapp/spenden_sponsoren.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
+            <a href="/spendenberechnung.php" class="btn btn-primary">Spenden berechnen</a>
+            <a href="/spenden_sponsoren.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
         </div>
         <div class="card">
             <h3>Spenden (Teams)</h3>
             <p>Berechnen Sie die Team-Spendenbeträge je Schwimmer mit Limit-Deckelung.</p>
-            <a href="/VAIBad_2/webapp/spendenberechnung_teams.php" class="btn btn-primary">Team-Spenden berechnen</a>
-            <a href="/VAIBad_2/webapp/spenden_teams.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
+            <a href="/spendenberechnung_teams.php" class="btn btn-primary">Team-Spenden berechnen</a>
+            <a href="/spenden_teams.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
         </div>
         <div class="card">
             <h3>Spenden (Hauptsponsoren)</h3>
             <p>Jeder Hauptsponsor zahlt für jeden Schwimmer – mit Limit-Deckelung.</p>
-            <a href="/VAIBad_2/webapp/spendenberechnung_hauptsponsoren.php" class="btn btn-primary">Hauptsponsor-Spenden berechnen</a>
-            <a href="/VAIBad_2/webapp/spenden_hauptsponsoren.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
+            <a href="/spendenberechnung_hauptsponsoren.php" class="btn btn-primary">Hauptsponsor-Spenden berechnen</a>
+            <a href="/spenden_hauptsponsoren.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
         </div>
         <div class="card">
             <h3>Auswertungen</h3>
             <p>Top-Ten-Listen und Spendentabellen. Umschaltung Vormittag/Nachmittag/Gesamt auf der Auswertungsseite.</p>
-            <a href="/VAIBad_2/webapp/auswertungen.php" class="btn btn-primary">Zu den Auswertungen</a>
+            <a href="/auswertungen.php" class="btn btn-primary">Zu den Auswertungen</a>
         </div>
         <div class="card">
             <h3>Spendenlisten</h3>
             <p>Listen aller Sponsoren, Teams und Hauptsponsoren mit Einzelschwimmern und Beträgen.</p>
-            <a href="/VAIBad_2/webapp/spendenlisten.php" class="btn btn-primary">Zu den Spendenlisten</a>
+            <a href="/spendenlisten.php" class="btn btn-primary">Zu den Spendenlisten</a>
         </div>
     </div>
 </div>

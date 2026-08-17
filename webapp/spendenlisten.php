@@ -164,7 +164,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Spendenlisten - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -188,7 +188,7 @@ function zeige_summen_abschnitt($titel, $gruppen) {
             echo '<td>' . number_format($r['sum_vormittag'], 2, ',', '.') . ' €</td>';
             echo '<td>' . number_format($r['sum_nachmittag'], 2, ',', '.') . ' €</td>';
             echo '<td><strong>' . number_format($r['sum_gesamt'], 2, ',', '.') . ' €</strong></td>';
-            echo '<td><a href="/VAIBad_2/webapp/spender_details.php?typ=' . $r['spender_typ'] . '&id=' . $r['spender_id'] . '" class="btn btn-primary">Details</a></td>';
+            echo '<td><a href="/spender_details.php?typ=' . $r['spender_typ'] . '&id=' . $r['spender_id'] . '" class="btn btn-primary">Details</a></td>';
             echo '</tr>';
         }
         // Summenzeile
@@ -208,18 +208,18 @@ function zeige_summen_abschnitt($titel, $gruppen) {
     <h1>Spendenlisten</h1>
 
     <div class="action-bar">
-        <a href="/VAIBad_2/webapp/spendenlisten.php?export=csv<?php echo $filter !== '' ? '&filter=' . urlencode($filter) : ''; ?>" class="btn btn-primary">CSV (nur Summen)</a>
-        <a href="/VAIBad_2/webapp/spendenlisten.php?export=csv-details<?php echo $filter !== '' ? '&filter=' . urlencode($filter) : ''; ?>" class="btn btn-primary">CSV (mit Details)</a>
-        <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+        <a href="/spendenlisten.php?export=csv<?php echo $filter !== '' ? '&filter=' . urlencode($filter) : ''; ?>" class="btn btn-primary">CSV (nur Summen)</a>
+        <a href="/spendenlisten.php?export=csv-details<?php echo $filter !== '' ? '&filter=' . urlencode($filter) : ''; ?>" class="btn btn-primary">CSV (mit Details)</a>
+        <a href="/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
     <!-- Filter (enthält Spendername) -->
     <div class="action-bar" style="margin-bottom: 1rem;">
-        <form method="GET" action="/VAIBad_2/webapp/spendenlisten.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+        <form method="GET" action="/spendenlisten.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
             <input type="text" name="filter" placeholder="Filter (Spendername enthält)..." value="<?php echo htmlspecialchars($filter); ?>" style="flex:1; min-width:200px; padding:.4rem .6rem;">
             <button type="submit" class="btn btn-primary">Filtern</button>
             <?php if ($filter !== ''): ?>
-                <a href="/VAIBad_2/webapp/spendenlisten.php" class="btn btn-secondary">Zurücksetzen</a>
+                <a href="/spendenlisten.php" class="btn btn-secondary">Zurücksetzen</a>
             <?php endif; ?>
         </form>
     </div>
@@ -230,9 +230,9 @@ function zeige_summen_abschnitt($titel, $gruppen) {
     ?>
         <div class="error-box" style="margin: 1rem 0;">
             Hinweis: Die Listen sind leer. Bitte zuerst die Spendenberechnungen durchführen:
-            <a href="/VAIBad_2/webapp/spendenberechnung.php">Sponsoren</a>,
-            <a href="/VAIBad_2/webapp/spendenberechnung_teams.php">Teams</a>,
-            <a href="/VAIBad_2/webapp/spendenberechnung_hauptsponsoren.php">Hauptsponsoren</a>.
+            <a href="/spendenberechnung.php">Sponsoren</a>,
+            <a href="/spendenberechnung_teams.php">Teams</a>,
+            <a href="/spendenberechnung_hauptsponsoren.php">Hauptsponsoren</a>.
         </div>
     <?php endif; ?>
 

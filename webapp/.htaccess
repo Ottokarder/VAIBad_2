@@ -1,0 +1,10 @@
+# Verzeichnis-Index: index.php anzeigen, wenn / aufgerufen wird
+DirectoryIndex index.php
+
+# UTF-8 als Standardzeichensatz fuer HTML-Auslieferung
+AddDefaultCharset UTF-8
+
+# Zugriff auf config.php sperren (enthaelt DB-Zugangsdaten)
+<Files "config.php">
+    Require all denied
+</Files>

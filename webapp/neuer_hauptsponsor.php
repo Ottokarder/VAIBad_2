@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->close();
 
         // Weiterleitung zur Hauptsponsorenliste
-        header("Location: /VAIBad_2/webapp/hauptsponsorenliste.php");
+        header("Location: /hauptsponsorenliste.php");
         exit();
     }
 }
@@ -39,7 +39,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Neuer Hauptsponsor - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -60,7 +60,7 @@ if (file_exists('includes/header.php')) {
     <?php endif; ?>
 
     <!-- Formular -->
-    <form method="POST" action="/VAIBad_2/webapp/neuer_hauptsponsor.php" class="form">
+    <form method="POST" action="/neuer_hauptsponsor.php" class="form">
         <div class="form-group">
             <label for="name">Name:</label>
             <input type="text" id="name" name="name" required
@@ -81,7 +81,7 @@ if (file_exists('includes/header.php')) {
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Speichern</button>
-            <a href="/VAIBad_2/webapp/hauptsponsorenliste.php" class="btn btn-secondary">Abbrechen</a>
+            <a href="/hauptsponsorenliste.php" class="btn btn-secondary">Abbrechen</a>
         </div>
     </form>
 </div>

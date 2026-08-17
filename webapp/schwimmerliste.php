@@ -9,7 +9,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    header("Location: /VAIBad_2/webapp/schwimmerliste.php");
+    header("Location: /schwimmerliste.php");
     exit();
 }
 
@@ -45,7 +45,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Teilnehmerliste - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -56,17 +56,17 @@ if (file_exists('includes/header.php')) {
 
     <!-- Button für neuen Schwimmer und Startseite -->
     <div class="action-bar">
-        <a href="/VAIBad_2/webapp/neuer_schwimmer.php" class="btn btn-primary">Neuer Teilnehmer</a>
-        <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+        <a href="/neuer_schwimmer.php" class="btn btn-primary">Neuer Teilnehmer</a>
+        <a href="/index.php" class="btn btn-secondary">Startseite</a>
     </div>
 
     <!-- Filter -->
     <div class="action-bar" style="margin-bottom: 1rem;">
-        <form method="GET" action="/VAIBad_2/webapp/schwimmerliste.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+        <form method="GET" action="/schwimmerliste.php" class="form-inline" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
             <input type="text" name="filter" placeholder="Filter (Name oder Startnr.)..." value="<?php echo htmlspecialchars($filter); ?>" style="flex:1; min-width:200px; padding:.4rem .6rem;">
             <button type="submit" class="btn btn-primary">Filtern</button>
             <?php if ($filter !== ''): ?>
-                <a href="/VAIBad_2/webapp/schwimmerliste.php" class="btn btn-secondary">Zurücksetzen</a>
+                <a href="/schwimmerliste.php" class="btn btn-secondary">Zurücksetzen</a>
             <?php endif; ?>
         </form>
     </div>
@@ -101,22 +101,22 @@ if (file_exists('includes/header.php')) {
                             <td><?php echo date('d.m.Y H:i', strtotime($row['erstelldatum'])); ?></td>
                             <td class="actions">
                                 <!-- Bearbeiten-Button -->
-                                <a href="/VAIBad_2/webapp/bearbeiten_schwimmer.php?id=<?php echo $row['id']; ?>"
+                                <a href="/bearbeiten_schwimmer.php?id=<?php echo $row['id']; ?>"
                                    class="btn btn-edit" title="Bearbeiten">
                                     Bearbeiten
                                 </a>
                                 <!-- Verknüpfung hinzufügen-Button -->
-                                <a href="/VAIBad_2/webapp/neue_verknuepfung.php?schwimmer_id=<?php echo $row['id']; ?>"
+                                <a href="/neue_verknuepfung.php?schwimmer_id=<?php echo $row['id']; ?>"
                                    class="btn btn-link" title="Verknüpfung mit Sponsor">
                                     Verknüpfen
                                 </a>
                                 <!-- Spenden-Button -->
-                                <a href="/VAIBad_2/webapp/schwimmer_spenden.php?schwimmer_id=<?php echo $row['id']; ?>"
+                                <a href="/schwimmer_spenden.php?schwimmer_id=<?php echo $row['id']; ?>"
                                    class="btn btn-primary" title="Spenden dieses Schwimmers">
                                     Spenden
                                 </a>
                                 <!-- Löschen-Button -->
-                                <a href="/VAIBad_2/webapp/schwimmerliste.php?action=delete&id=<?php echo $row['id']; ?>"
+                                <a href="/schwimmerliste.php?action=delete&id=<?php echo $row['id']; ?>"
                                    class="btn btn-delete"
                                    onclick="return confirm('Möchtest du diesen Teilnehmer wirklich löschen?')"
                                    title="Löschen">

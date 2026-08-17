@@ -156,7 +156,7 @@ if (file_exists('includes/header.php')) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Hauptsponsor-Spendenberechnung - VAIBad</title>
-        <link rel="stylesheet" href="/VAIBad_2/webapp/css/style.css">
+        <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
 }
@@ -196,14 +196,14 @@ if (file_exists('includes/header.php')) {
     <?php endif; ?>
 
     <!-- Formular zum Anstoßen der Berechnung -->
-    <form method="POST" action="/VAIBad_2/webapp/spendenberechnung_hauptsponsoren.php" class="form">
+    <form method="POST" action="/spendenberechnung_hauptsponsoren.php" class="form">
         <div class="form-actions">
             <button type="submit" name="berechnen" value="1" class="btn btn-primary"
                     onclick="return confirm('Sollen die Hauptsponsor-Spendenbeträge jetzt neu berechnet werden? Vorherige Ergebnisse werden überschrieben.')">
                 Hauptsponsor-Spendenbeträge berechnen
             </button>
-            <a href="/VAIBad_2/webapp/spenden_hauptsponsoren.php" class="btn btn-secondary">Ergebnisse ansehen</a>
-            <a href="/VAIBad_2/webapp/index.php" class="btn btn-secondary">Startseite</a>
+            <a href="/spenden_hauptsponsoren.php" class="btn btn-secondary">Ergebnisse ansehen</a>
+            <a href="/index.php" class="btn btn-secondary">Startseite</a>
         </div>
     </form>
 </div>

@@ -1,12 +1,16 @@
 -- ============================================================
 -- VAIBad 2 - Authentifizierung (TELEKOM Online-Version)
 -- ============================================================
--- Legt die Benutzertabelle für das Login-System an.
--- Passwörter werden NICHT im Klartext gespeichert, sondern als
--- bcrypt-Hash über die PHP-Funktion password_hash().
+-- Legt die Benutzertabelle fuer das Login-System an.
+-- Passwoerter werden NICHT im Klartext gespeichert, sondern als
+-- bcrypt-Hash ueber die PHP-Funktion password_hash().
 --============================================================
-
-USE vaibad_2;
+--
+-- Datenbank: Diese Datei ist fuer den TELEKOM-Server ausgelegt.
+-- Die Datenbank heisst dort: HTO01FLQKFNX_4
+-- (Beim Ausfuehren ueber phpMyAdmin die entsprechende Datenbank
+--  links auswaehlen; die USE-Anweisung kann dann entfallen.)
+USE HTO01FLQKFNX_4;
 
 CREATE TABLE IF NOT EXISTS benutzer (
     id INT AUTO_INCREMENT PRIMARY KEY,

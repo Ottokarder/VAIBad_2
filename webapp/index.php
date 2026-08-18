@@ -1,6 +1,7 @@
 <?php
-require_once __DIR__ . '/auth.php';
-// HTML-Header einbinden
+require_once __DIR__ . '/config.php';
+// HTML-Header einbinden (liefert <html>/<head>, die <header>-Navigation und oeffnet <div class="container">).
+// Login-Schutz laeuft bereits ueber config.php -> auth.php, VOR der ersten HTML-Ausgabe.
 if (file_exists('includes/header.php')) {
     include 'includes/header.php';
 } else {
@@ -13,34 +14,12 @@ if (file_exists('includes/header.php')) {
         <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
+    echo '<header class="site-header"><div class="header-container"><div class="logo"><a href="/index.php"><h1>VAIBad 2</h1></a></div><nav class="main-nav"><ul><li><a href="/index.php" class="active">Startseite</a></li><li><a href="/schwimmerliste.php">Schwimmer</a></li><li><a href="/sponsorenliste.php">Sponsoren</a></li><li><a href="/hauptsponsorenliste.php">Hauptsponsoren</a></li><li><a href="/teams.php">Teams</a></li><li><a href="/spenden_sponsoren.php">Spenden</a></li><li><a href="/auswertungen.php">Auswertungen</a></li><li><a href="/spendenlisten.php">Spendenlisten</a></li></ul></nav></div></header>';
+    echo '<div class="container">';
 }
 ?>
 
-<!-- Hauptmenü (ähnlich wie foerderverein-enztalbad.de) -->
-<header class="site-header">
-    <div class="header-container">
-        <div class="logo">
-            <a href="/index.php">
-                <h1>VAIBad 2</h1>
-            </a>
-        </div>
-        <nav class="main-nav">
-            <ul>
-                <li><a href="/index.php" class="active">Startseite</a></li>
-                <li><a href="/schwimmerliste.php">Schwimmer</a></li>
-                <li><a href="/sponsorenliste.php">Sponsoren</a></li>
-                <li><a href="/hauptsponsorenliste.php">Hauptsponsoren</a></li>
-                <li><a href="/teams.php">Teams</a></li>
-                <li><a href="/spenden_sponsoren.php">Spenden</a></li>
-                <li><a href="/auswertungen.php">Auswertungen</a></li>
-                <li><a href="/spendenlisten.php">Spendenlisten</a></li>
-            </ul>
-        </nav>
-    </div>
-</header>
-
 <!-- Hauptinhalt -->
-<div class="container">
     <div class="hero-section">
         <h2>Willkommen im Schwimmwettbewerb-Verwaltungssystem</h2>
         <p>Verwalten Sie hier einfach und übersichtlich die Teilnehmer, Sponsoren und Hauptsponsoren Ihres Schwimmwettbewerbs.</p>
@@ -101,20 +80,14 @@ if (file_exists('includes/header.php')) {
             <a href="/spendenlisten.php" class="btn btn-primary">Zu den Spendenlisten</a>
         </div>
     </div>
-</div>
-
-<!-- Footer -->
-<footer class="site-footer">
-    <div class="footer-container">
-        <p>&copy; <?php echo date('Y'); ?> VAIBad 2. Alle Rechte vorbehalten.</p>
-    </div>
-</footer>
+</div><!-- /.container -->
 
 <?php
-// HTML-Footer einbinden
+// HTML-Footer einbinden (schliesst <div class="container">, den Footer und <body>/<html>).
 if (file_exists('includes/footer.php')) {
     include 'includes/footer.php';
 } else {
+    echo '<footer class="site-footer"><div class="footer-container"><p>&copy; ' . date('Y') . ' VAIBad 2. Alle Rechte vorbehalten.</p></div></footer>';
     echo '</body>
     </html>';
 }

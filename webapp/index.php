@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/auth.php';
 // HTML-Header einbinden
 if (file_exists('includes/header.php')) {
     include 'includes/header.php';

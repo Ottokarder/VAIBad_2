@@ -1,4 +1,7 @@
 <?php
+// Authentifizierung einbinden: prueft als allererstes den Login
+// (vor jeglicher Logik oder HTML-Ausgabe) und leitet ggf. zum Login weiter.
+require_once __DIR__ . '/auth.php';
 // Datenbankkonfiguration fuer VAIBad_2
 // Aufruf: https://schwimmen.foerderverein-enztalbad.de
 // Docroot: /home/www/public_html/vaibad

@@ -416,3 +416,73 @@ h1 {
         grid-template-columns: 1fr;
     }
 }
+
+/* =============================
+   Login (TELEKOM Online-Version)
+   ============================= */
+.login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    padding: 20px;
+}
+
+.login-box {
+    width: 100%;
+    max-width: 400px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+}
+
+.login-logo {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.login-logo h1 {
+    font-size: 28px;
+    color: #0056b3;
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.login-form {
+    max-width: 100%;
+    margin: 0;
+}
+
+.login-box h2 {
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 20px;
+}
+
+/* Navigation: Benutzer + Abmelden */
+.nav-user {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-user-name {
+    color: #fff;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.nav-logout {
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 6px 12px;
+    border-radius: 4px;
+}
+
+.nav-logout:hover {
+    background-color: rgba(220, 53, 69, 0.7);
+}

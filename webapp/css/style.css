@@ -25,10 +25,10 @@ body {
 }
 
 /* =============================
-   Überschriften
+   Ueberschriften
    ============================= */
 h1, h2, h3 {
-    color: #0056b3; /* Blau wie auf foerderverein-enztalbad.de */
+    color: #0056b3;
     margin-bottom: 20px;
 }
 
@@ -39,7 +39,7 @@ h1 {
 }
 
 /* =============================
-   Header & Navigation (Menü)
+   Header & Navigation (Menu)
    ============================= */
 .site-header {
     background-color: #0056b3;
@@ -97,10 +97,12 @@ h1 {
 }
 
 /* =============================
-   Dropdown-Menü - Hauptpunkte immer sichtbar, Unterpunkte NUR bei Hover
+   Dropdown-Menu - Hauptpunkte immer sichtbar, Unterpunkte NUR bei Hover
    ============================= */
-.dropdown {
+
+.main-nav ul > li.dropdown {
     position: relative;
+    display: inline-block;
 }
 
 .dropdown-toggle {
@@ -117,12 +119,11 @@ h1 {
 }
 
 .dropdown-toggle::after {
-    content: " ▼";
+    content: " \25bc";
     font-size: 10px;
     margin-left: 5px;
 }
 
-/* Untermenüpunkte - NUR bei Hover über Hauptpunkt sichtbar */
 .dropdown-menu {
     display: none;
     position: absolute;
@@ -138,7 +139,7 @@ h1 {
     z-index: 1000;
 }
 
-.dropdown:hover .dropdown-menu {
+.main-nav ul > li.dropdown:hover .dropdown-menu {
     display: block;
 }
 
@@ -184,7 +185,7 @@ h1 {
 }
 
 /* =============================
-   Action-Bar (Button-Leiste über der Tabelle)
+   Action-Bar (Button-Leiste ueber der Tabelle)
    ============================= */
 .action-bar {
     margin-bottom: 20px;
@@ -376,7 +377,7 @@ h1 {
 }
 
 /* =============================
-   Verknüpfungsliste
+   Verknuepfungsliste
    ============================= */
 .verknuepfungen-liste {
     margin-top: 30px;
@@ -463,7 +464,7 @@ h1 {
         font-size: 12px;
     }
 
-    /* Responsive Menü - vertikal anzeigen */
+    /* Responsive Menu - vertikal anzeigen */
     .header-container {
         flex-direction: column;
         gap: 15px;
@@ -478,7 +479,7 @@ h1 {
         display: block;
     }
 
-    /* Dropdown für Mobile - als Akkordeon */
+    /* Dropdown fuer Mobile - als Akkordeon */
     .dropdown-menu {
         position: static;
         display: none;
@@ -487,13 +488,12 @@ h1 {
         padding-left: 20px;
     }
     
-    .dropdown:hover .dropdown-menu,
-    .dropdown-menu:hover {
+    .dropdown:hover .dropdown-menu {
         display: block;
     }
     
     .dropdown-toggle::after {
-        content: " ►";
+        content: " \25ba";
     }
     
     /* Nav-User auf Mobile */

@@ -97,6 +97,66 @@ h1 {
 }
 
 /* =============================
+   Dropdown-Menü - Hauptpunkte immer sichtbar, Unterpunkte nur bei Hover
+   ============================= */
+
+/* Hauptmenüpunkte (Administration, Auswertungen) - immer sichtbar */
+.main-nav > ul > li.dropdown > a.dropdown-toggle {
+    color: white;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.main-nav > ul > li.dropdown > a.dropdown-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.main-nav > ul > li.dropdown > a.dropdown-toggle::after {
+    content: " ▼";
+    font-size: 10px;
+    margin-left: 5px;
+}
+
+/* Untermenüpunkte - nur bei Hover über Hauptpunkt sichtbar */
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #0056b3;
+    min-width: 200px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.dropdown:hover .dropdown-menu {
+    display: block;
+}
+
+.dropdown-menu li {
+    display: block;
+}
+
+.dropdown-menu a {
+    color: white;
+    text-decoration: none;
+    padding: 8px 12px;
+    display: block;
+    transition: background-color 0.3s;
+}
+
+.dropdown-menu a:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* =============================
    Hero-Section (Willkommensbereich)
    ============================= */
 .hero-section {
@@ -415,6 +475,22 @@ h1 {
     .dashboard {
         grid-template-columns: 1fr;
     }
+
+    /* Dropdown für Mobile - als Akkordeon */
+    .dropdown-menu {
+        position: static;
+        display: none;
+        background-color: rgba(0, 86, 179, 0.9);
+        box-shadow: none;
+    }
+    
+    .dropdown:hover .dropdown-menu {
+        display: block;
+    }
+    
+    .dropdown-toggle::after {
+        content: " ►";
+    }
 }
 
 /* =============================
@@ -485,84 +561,4 @@ h1 {
 
 .nav-logout:hover {
     background-color: rgba(220, 53, 69, 0.7);
-}
-
-/* =============================
-   Dropdown-Menü
-   ============================= */
-.dropdown {
-    position: relative;
-}
-
-.dropdown-toggle {
-    color: white;
-    text-decoration: none;
-    padding: 8px 12px;
-    border-radius: 4px;
-    transition: background-color 0.3s;
-    font-weight: 500;
-    display: inline-block;
-}
-
-.dropdown-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-.dropdown-toggle::after {
-    content: " ▼";
-    font-size: 10px;
-    margin-left: 5px;
-}
-
-.dropdown-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background-color: #0056b3;
-    min-width: 200px;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    display: none;
-    z-index: 1000;
-}
-
-.dropdown:hover .dropdown-menu {
-    display: block;
-}
-
-.dropdown-menu li {
-    display: block;
-}
-
-.dropdown-menu a {
-    color: white;
-    text-decoration: none;
-    padding: 8px 12px;
-    display: block;
-    transition: background-color 0.3s;
-}
-
-.dropdown-menu a:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Responsive Dropdown */
-@media (max-width: 768px) {
-    .dropdown-menu {
-        position: static;
-        display: none;
-        background-color: rgba(0, 86, 179, 0.9);
-        box-shadow: none;
-    }
-    
-    .dropdown:hover .dropdown-menu {
-        display: block;
-    }
-    
-    .dropdown-toggle::after {
-        content: " ►";
-    }
 }

@@ -4,7 +4,7 @@
 -- Legt die Benutzertabelle fuer das Login-System an.
 -- Passwoerter werden NICHT im Klartext gespeichert, sondern als
 -- bcrypt-Hash ueber die PHP-Funktion password_hash().
---============================================================
+-- ============================================================
 --
 -- Datenbank: Diese Datei ist fuer den TELEKOM-Server ausgelegt.
 -- Die Datenbank heisst dort: HTO01FLQKFNX_4

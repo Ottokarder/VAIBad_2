@@ -115,6 +115,11 @@ if (file_exists('includes/header.php')) {
                                    class="btn btn-primary" title="Spenden dieses Schwimmers">
                                     Spenden
                                 </a>
+                                <!-- Schwimmleistung eingeben-Button -->
+                                <a href="/schwimmleistung_eingeben.php?schwimmer_id=<?php echo $row['id']; ?>"
+                                   class="btn btn-link" title="Schwimmleistung eingeben">
+                                    Schwimmleistung
+                                </a>
                                 <!-- Löschen-Button -->
                                 <a href="/schwimmerliste.php?action=delete&id=<?php echo $row['id']; ?>"
                                    class="btn btn-delete"

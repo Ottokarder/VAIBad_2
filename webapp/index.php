@@ -14,7 +14,7 @@ if (file_exists('includes/header.php')) {
         <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>';
-    echo '<header class="site-header"><div class="header-container"><div class="logo"><a href="/index.php"><h1>VAIBad 2</h1></a></div><nav class="main-nav"><ul><li><a href="/index.php" class="active">Startseite</a></li><li><a href="/schwimmerliste.php">Schwimmer</a></li><li><a href="/sponsorenliste.php">Sponsoren</a></li><li><a href="/hauptsponsorenliste.php">Hauptsponsoren</a></li><li><a href="/teams.php">Teams</a></li><li><a href="/spenden_sponsoren.php">Spenden</a></li><li><a href="/auswertungen.php">Auswertungen</a></li><li><a href="/spendenlisten.php">Spendenlisten</a></li></ul></nav></div></header>';
+    echo '<header class="site-header"><div class="header-container"><div class="logo"><a href="/index.php"><h1>VAIBad 2</h1></a></div><nav class="main-nav"><ul><li><a href="/index.php" class="active">Startseite</a></li><li class="dropdown"><a href="#" class="dropdown-toggle">Administration</a><ul class="dropdown-menu"><li><a href="/schwimmerliste.php">Schwimmer</a></li><li><a href="/sponsorenliste.php">Sponsoren</a></li><li><a href="/teams.php">Teams</a></li><li><a href="/hauptsponsorenliste.php">Hauptsponsoren</a></li><li><a href="/schwimmleistung_eingeben.php">Schwimmleistung eingeben</a></li></ul></li><li class="dropdown"><a href="#" class="dropdown-toggle">Auswertungen</a><ul class="dropdown-menu"><li><a href="/auswertungen.php">Auswertungen</a></li><li><a href="/spendenlisten.php">Spendenlisten</a></li><li><a href="/spenden_sponsoren.php">Spenden (Schwimmer)</a></li></ul></li></ul></nav></div></header>';
     echo '<div class="container">';
 }
 ?>
@@ -53,9 +53,8 @@ if (file_exists('includes/header.php')) {
 
         <div class="card">
             <h3>Spenden (Sponsoren)</h3>
-            <p>Berechnen Sie die Spendenbeträge je Schwimmer und Sponsor.</p>
-            <a href="/spendenberechnung.php" class="btn btn-primary">Spenden berechnen</a>
-            <a href="/spenden_sponsoren.php" class="btn btn-secondary" style="margin-top:.5rem;">Ergebnisse ansehen</a>
+            <p>Spendenbeträge je Schwimmer und Sponsor werden automatisch bei der Schwimmleistungseingabe berechnet.</p>
+            <a href="/spenden_sponsoren.php" class="btn btn-primary">Ergebnisse ansehen</a>
         </div>
         <div class="card">
             <h3>Spenden (Teams)</h3>

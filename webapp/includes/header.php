@@ -54,10 +54,10 @@ $aktueller_benutzer = $_SESSION['benutzername'] ?? '';
                     </ul>
                 </li>
                 <?php if ($aktueller_benutzer !== ''): ?>
-                    <li class="nav-user">
-                        <span class="nav-user-name"><?php echo htmlspecialchars($aktueller_benutzer, ENT_QUOTES, 'UTF-8'); ?></span>
-                        <a href="/logout.php" class="nav-logout">Abmelden</a>
-                    </li>
+                <li class="nav-user">
+                    <span class="nav-user-name"><?php echo htmlspecialchars($aktueller_benutzer, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <a href="/logout.php" class="nav-logout">Abmelden</a>
+                </li>
                 <?php endif; ?>
             </ul>
         </nav>

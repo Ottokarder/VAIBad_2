@@ -101,7 +101,12 @@ h1 {
    ============================= */
 
 /* Hauptmenüpunkte (Administration, Auswertungen) - immer sichtbar */
-.main-nav > ul > li.dropdown > a.dropdown-toggle {
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
     color: white;
     text-decoration: none;
     padding: 8px 12px;
@@ -110,11 +115,11 @@ h1 {
     display: inline-block;
 }
 
-.main-nav > ul > li.dropdown > a.dropdown-toggle:hover {
+.dropdown-toggle:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
-.main-nav > ul > li.dropdown > a.dropdown-toggle::after {
+.dropdown-toggle::after {
     content: " ▼";
     font-size: 10px;
     margin-left: 5px;
@@ -142,6 +147,7 @@ h1 {
 
 .dropdown-menu li {
     display: block;
+    width: 100%;
 }
 
 .dropdown-menu a {
@@ -150,6 +156,7 @@ h1 {
     padding: 8px 12px;
     display: block;
     transition: background-color 0.3s;
+    white-space: nowrap;
 }
 
 .dropdown-menu a:hover {

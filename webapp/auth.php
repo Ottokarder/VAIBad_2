@@ -10,6 +10,9 @@
  * und das Anlege-Skript benutzer_anlegen.php.
  */
 
+// Session mit Cookie-Lifetime = 0 (Session-Cookie) - wird beim Schließen des Browsers gelöscht
+session_set_cookie_params(0);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

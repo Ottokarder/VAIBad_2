@@ -83,7 +83,6 @@ if (file_exists('includes/header.php')) {
                     <th>Bahnen Vormittag</th>
                     <th>Bahnen Nachmittag</th>
                     <th>Bahnen Gesamt</th>
-                    <th>Erstellungsdatum</th>
                     <th>Aktionen</th>
                 </tr>
             </thead>
@@ -98,7 +97,6 @@ if (file_exists('includes/header.php')) {
                             <td><?php echo htmlspecialchars($row['schwimmleistung_vormittag']); ?></td>
                             <td><?php echo htmlspecialchars($row['schwimmleistung_nachmittag']); ?></td>
                             <td><strong><?php echo htmlspecialchars($row['schwimmleistung_gesamt']); ?></strong></td>
-                            <td><?php echo date('d.m.Y H:i', strtotime($row['erstelldatum'])); ?></td>
                             <td class="actions">
                                 <!-- Bearbeiten-Button -->
                                 <a href="/bearbeiten_schwimmer.php?id=<?php echo $row['id']; ?>"
@@ -132,7 +130,7 @@ if (file_exists('includes/header.php')) {
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="9" class="no-data">Keine Teilnehmer gefunden.</td>
+                        <td colspan="8" class="no-data">Keine Teilnehmer gefunden.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

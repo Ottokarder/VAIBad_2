@@ -10,7 +10,7 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 $id = intval($_GET['id']);
 
 // Schwimmerdaten abrufen
-$stmt = $conn->prepare("SELECT id, startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag, schwimmleistung_gesamt FROM Schwimmer WHERE id = ?");
+$stmt = $conn->prepare("SELECT id, startnummer, vorname, nachname, geburtsjahr FROM Schwimmer WHERE id = ?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -39,8 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $vorname = trim($_POST['vorname']);
     $nachname = trim($_POST['nachname']);
     $geburtsjahr = intval($_POST['geburtsjahr']);
-    $schwimmleistung_vormittag = isset($_POST['schwimmleistung_vormittag']) ? max(0, intval($_POST['schwimmleistung_vormittag'])) : 0;
-    $schwimmleistung_nachmittag = isset($_POST['schwimmleistung_nachmittag']) ? max(0, intval($_POST['schwimmleistung_nachmittag'])) : 0;
     $team_ids_input = isset($_POST['team_ids']) ? $_POST['team_ids'] : [];
 
     // Validierung
@@ -48,14 +46,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($vorname)) $fehler[] = "Vorname ist erforderlich.";
     if (empty($nachname)) $fehler[] = "Nachname ist erforderlich.";
     if ($geburtsjahr < 1900 || $geburtsjahr > date('Y')) $fehler[] = "Ungültiges Geburtsjahr.";
-    if ($schwimmleistung_vormittag < 0 || $schwimmleistung_nachmittag < 0) {
-        $fehler[] = "Schwimmleistung darf nicht negativ sein.";
-    }
+
 
     if (empty($fehler)) {
         // Schwimmer aktualisieren (Startnummer bleibt unverändert)
-        $stmt = $conn->prepare("UPDATE Schwimmer SET vorname = ?, nachname = ?, geburtsjahr = ?, schwimmleistung_vormittag = ?, schwimmleistung_nachmittag = ? WHERE id = ?");
-        $stmt->bind_param("ssiiii", $vorname, $nachname, $geburtsjahr, $schwimmleistung_vormittag, $schwimmleistung_nachmittag, $id);
+        $stmt = $conn->prepare("UPDATE Schwimmer SET vorname = ?, nachname = ?, geburtsjahr = ? WHERE id = ?");
+        $stmt->bind_param("ssii", $vorname, $nachname, $geburtsjahr, $id);
         $stmt->execute();
         $stmt->close();
         // Team-Zuordnungen synchronisieren (mehrfach möglich)
@@ -156,22 +152,7 @@ if (file_exists('includes/header.php')) {
             </select>
             <small>Mehrere Teams mit gedrückter Strg-/Cmd-Taste auswählen. Ein Schwimmer kann für mehrere Teams schwimmen.</small>
         </div>
-        <div class="form-group">
-            <label for="schwimmleistung_vormittag">Schwimmleistung Vormittag (Bahnen):</label>
-            <input type="number" id="schwimmleistung_vormittag" name="schwimmleistung_vormittag"
-                   min="0" value="<?php echo htmlspecialchars($schwimmer['schwimmleistung_vormittag']); ?>">
-            <small>0 = hat vormittags nicht geschwommen.</small>
-        </div>
-        <div class="form-group">
-            <label for="schwimmleistung_nachmittag">Schwimmleistung Nachmittag (Bahnen):</label>
-            <input type="number" id="schwimmleistung_nachmittag" name="schwimmleistung_nachmittag"
-                   min="0" value="<?php echo htmlspecialchars($schwimmer['schwimmleistung_nachmittag']); ?>">
-            <small>0 = hat nachmittags nicht geschwommen.</small>
-        </div>
-        <div class="form-group">
-            <label>Gesamtleistung (automatisch):</label>
-            <input type="text" value="<?php echo htmlspecialchars($schwimmer['schwimmleistung_gesamt']); ?> Bahnen" readonly>
-        </div>
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Speichern</button>
             <a href="/schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>

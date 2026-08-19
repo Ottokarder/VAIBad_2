@@ -75,7 +75,7 @@ h1 {
     margin: 0;
     padding: 0;
     display: flex;
-    gap: 20px;
+    gap: 0;
 }
 
 .main-nav li {
@@ -99,11 +99,8 @@ h1 {
 /* =============================
    Dropdown-Menü - Hauptpunkte immer sichtbar, Unterpunkte NUR bei Hover
    ============================= */
-
-/* Hauptmenüpunkte (Administration, Auswertungen) - immer sichtbar */
-.main-nav ul > li.dropdown {
+.dropdown {
     position: relative;
-    display: inline-block;
 }
 
 .dropdown-toggle {
@@ -127,7 +124,7 @@ h1 {
 
 /* Untermenüpunkte - NUR bei Hover über Hauptpunkt sichtbar */
 .dropdown-menu {
-    display: none;  /* Standardmäßig VERSTECKT */
+    display: none;
     position: absolute;
     top: 100%;
     left: 0;
@@ -141,8 +138,7 @@ h1 {
     z-index: 1000;
 }
 
-/* NUR bei Hover über den Hauptpunkt anzeigen */
-.main-nav ul > li.dropdown:hover .dropdown-menu {
+.dropdown:hover .dropdown-menu {
     display: block;
 }
 
@@ -467,7 +463,7 @@ h1 {
         font-size: 12px;
     }
 
-    /* Responsive Menü */
+    /* Responsive Menü - vertikal anzeigen */
     .header-container {
         flex-direction: column;
         gap: 15px;
@@ -475,12 +471,11 @@ h1 {
 
     .main-nav ul {
         flex-direction: column;
-        gap: 10px;
-        text-align: center;
+        gap: 0;
     }
 
-    .dashboard {
-        grid-template-columns: 1fr;
+    .main-nav li {
+        display: block;
     }
 
     /* Dropdown für Mobile - als Akkordeon */
@@ -489,14 +484,22 @@ h1 {
         display: none;
         background-color: rgba(0, 86, 179, 0.9);
         box-shadow: none;
+        padding-left: 20px;
     }
     
-    .dropdown:hover .dropdown-menu {
+    .dropdown:hover .dropdown-menu,
+    .dropdown-menu:hover {
         display: block;
     }
     
     .dropdown-toggle::after {
         content: " ►";
+    }
+    
+    /* Nav-User auf Mobile */
+    .nav-user {
+        margin-top: 10px;
+        text-align: center;
     }
 }
 

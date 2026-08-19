@@ -35,14 +35,24 @@ $aktueller_benutzer = $_SESSION['benutzername'] ?? '';
         <nav class="main-nav">
             <ul>
                 <li><a href="/index.php">Startseite</a></li>
-                <li><a href="/schwimmerliste.php">Schwimmer</a></li>
-                <li><a href="/sponsorenliste.php">Sponsoren</a></li>
-                <li><a href="/teams.php">Teams</a></li>
-                <li><a href="/hauptsponsorenliste.php">Hauptsponsoren</a></li>
-                <li><a href="/schwimmleistung_eingeben.php">Schwimmleistung eingeben</a></li>
-                <li><a href="/auswertungen.php">Auswertungen</a></li>
-                <li><a href="/spendenlisten.php">Spendenlisten</a></li>
-                <li><a href="/spenden_sponsoren.php">Spenden (Schwimmer)</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle">Administration</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/schwimmerliste.php">Schwimmer</a></li>
+                        <li><a href="/sponsorenliste.php">Sponsoren</a></li>
+                        <li><a href="/teams.php">Teams</a></li>
+                        <li><a href="/hauptsponsorenliste.php">Hauptsponsoren</a></li>
+                        <li><a href="/schwimmleistung_eingeben.php">Schwimmleistung eingeben</a></li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle">Auswertungen</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/auswertungen.php">Auswertungen</a></li>
+                        <li><a href="/spendenlisten.php">Spendenlisten</a></li>
+                        <li><a href="/spenden_sponsoren.php">Spenden (Schwimmer)</a></li>
+                    </ul>
+                </li>
                 <?php if ($aktueller_benutzer !== ''): ?>
                 <li class="nav-user">
                     <span class="nav-user-name"><?php echo htmlspecialchars($aktueller_benutzer, ENT_QUOTES, 'UTF-8'); ?></span>

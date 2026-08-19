@@ -97,11 +97,11 @@ h1 {
 }
 
 /* =============================
-   Dropdown-Menü - Hauptpunkte immer sichtbar, Unterpunkte nur bei Hover
+   Dropdown-Menü - Hauptpunkte immer sichtbar, Unterpunkte NUR bei Hover
    ============================= */
 
 /* Hauptmenüpunkte (Administration, Auswertungen) - immer sichtbar */
-.dropdown {
+.main-nav ul > li.dropdown {
     position: relative;
     display: inline-block;
 }
@@ -125,9 +125,9 @@ h1 {
     margin-left: 5px;
 }
 
-/* Untermenüpunkte - nur bei Hover über Hauptpunkt sichtbar */
+/* Untermenüpunkte - NUR bei Hover über Hauptpunkt sichtbar */
 .dropdown-menu {
-    display: none;
+    display: none;  /* Standardmäßig VERSTECKT */
     position: absolute;
     top: 100%;
     left: 0;
@@ -141,7 +141,8 @@ h1 {
     z-index: 1000;
 }
 
-.dropdown:hover .dropdown-menu {
+/* NUR bei Hover über den Hauptpunkt anzeigen */
+.main-nav ul > li.dropdown:hover .dropdown-menu {
     display: block;
 }
 
@@ -155,7 +156,6 @@ h1 {
     text-decoration: none;
     padding: 8px 12px;
     display: block;
-    transition: background-color 0.3s;
     white-space: nowrap;
 }
 

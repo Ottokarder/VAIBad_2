@@ -7,8 +7,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $vorname = trim($_POST['vorname']);
     $nachname = trim($_POST['nachname']);
     $geburtsjahr = intval($_POST['geburtsjahr']);
-    $schwimmleistung_vormittag = isset($_POST['schwimmleistung_vormittag']) ? max(0, intval($_POST['schwimmleistung_vormittag'])) : 0;
-    $schwimmleistung_nachmittag = isset($_POST['schwimmleistung_nachmittag']) ? max(0, intval($_POST['schwimmleistung_nachmittag'])) : 0;
     $startnummer_input = isset($_POST['startnummer']) ? trim($_POST['startnummer']) : '';
     $team_ids_input = isset($_POST['team_ids']) ? $_POST['team_ids'] : [];
 
@@ -17,10 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($vorname)) $fehler[] = "Vorname ist erforderlich.";
     if (empty($nachname)) $fehler[] = "Nachname ist erforderlich.";
     if ($geburtsjahr < 1900 || $geburtsjahr > date('Y')) $fehler[] = "Ungültiges Geburtsjahr.";
-    if ($schwimmleistung_vormittag < 0 || $schwimmleistung_nachmittag < 0) {
-        $fehler[] = "Schwimmleistung darf nicht negativ sein.";
-    }
-
     $startnummer = null;
     if ($startnummer_input !== '') {
         $startnummer = intval($startnummer_input);
@@ -45,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $startnummer = intval($row['next_nr']);
         }
         // Schwimmer in die Datenbank einfügen
-        $stmt = $conn->prepare("INSERT INTO Schwimmer (startnummer, vorname, nachname, geburtsjahr, schwimmleistung_vormittag, schwimmleistung_nachmittag) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("issiii", $startnummer, $vorname, $nachname, $geburtsjahr, $schwimmleistung_vormittag, $schwimmleistung_nachmittag);
+        $stmt = $conn->prepare("INSERT INTO Schwimmer (startnummer, vorname, nachname, geburtsjahr) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("issi", $startnummer, $vorname, $nachname, $geburtsjahr);
         $stmt->execute();
         $neuer_schwimmer_id = $stmt->insert_id;
         $stmt->close();
@@ -139,18 +133,7 @@ if (file_exists('includes/header.php')) {
             </select>
             <small>Mehrere Teams mit gedrückter Strg-/Cmd-Taste auswählen. Ein Schwimmer kann für mehrere Teams schwimmen.</small>
         </div>
-        <div class="form-group">
-            <label for="schwimmleistung_vormittag">Schwimmleistung Vormittag (Bahnen):</label>
-            <input type="number" id="schwimmleistung_vormittag" name="schwimmleistung_vormittag"
-                   min="0" value="<?php echo isset($schwimmleistung_vormittag) ? htmlspecialchars($schwimmleistung_vormittag) : '0'; ?>">
-            <small>0 = hat vormittags nicht geschwommen.</small>
-        </div>
-        <div class="form-group">
-            <label for="schwimmleistung_nachmittag">Schwimmleistung Nachmittag (Bahnen):</label>
-            <input type="number" id="schwimmleistung_nachmittag" name="schwimmleistung_nachmittag"
-                   min="0" value="<?php echo isset($schwimmleistung_nachmittag) ? htmlspecialchars($schwimmleistung_nachmittag) : '0'; ?>">
-            <small>0 = hat nachmittags nicht geschwommen.</small>
-        </div>
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Speichern</button>
             <a href="/schwimmerliste.php" class="btn btn-secondary">Abbrechen</a>

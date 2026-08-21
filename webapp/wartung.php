@@ -83,6 +83,12 @@ if (isset($_GET['action'])) {
     }
 }
 
+// Alle Variablen initialisieren (leer setzen)
+$schwimmer_ohne_leistung = [];
+$schwimmer_ohne_sponsor = [];
+$sponsoren_ohne_schwimmer = [];
+$teams_ohne_schwimmer = [];
+
 // HTML-Header einbinden
 if (file_exists('includes/header.php')) {
     include 'includes/header.php';
@@ -135,6 +141,7 @@ if (file_exists('includes/header.php')) {
     <!-- Schwimmer ohne Schwimmleistung -->
     <h2 style="margin-top: 2rem;">Schwimmer ohne Schwimmleistung</h2>
     <?php
+    // Variablen zurücksetzen
     $schwimmer_ohne_leistung = [];
     $res = $conn->query("
         SELECT id, startnummer, vorname, nachname
@@ -173,10 +180,10 @@ if (file_exists('includes/header.php')) {
         </div>
     <?php endif; ?>
 
-
     <!-- Schwimmer ohne Sponsoren-Zuordnung -->
     <h2 style="margin-top: 2rem;">Schwimmer ohne Sponsoren-Zuordnung</h2>
     <?php
+    // Variablen zurücksetzen
     $schwimmer_ohne_sponsor = [];
     $res = $conn->query("
         SELECT sw.id, sw.startnummer, sw.vorname, sw.nachname
@@ -219,6 +226,7 @@ if (file_exists('includes/header.php')) {
     <!-- Sponsoren ohne Schwimmer-Zuordnung -->
     <h2 style="margin-top: 2rem;">Sponsoren ohne Schwimmer-Zuordnung</h2>
     <?php
+    // Variablen zurücksetzen
     $sponsoren_ohne_schwimmer = [];
     $res = $conn->query("
         SELECT sp.id, sp.name
@@ -255,6 +263,7 @@ if (file_exists('includes/header.php')) {
     <!-- Teams ohne Schwimmer-Zuordnung -->
     <h2 style="margin-top: 2rem;">Teams ohne Schwimmer-Zuordnung</h2>
     <?php
+    // Variablen zurücksetzen
     $teams_ohne_schwimmer = [];
     $res = $conn->query("
         SELECT t.id, t.name

@@ -173,6 +173,49 @@ if (file_exists('includes/header.php')) {
         </div>
     <?php endif; ?>
 
+
+    <!-- Schwimmer ohne Sponsoren-Zuordnung -->
+    <h2 style="margin-top: 2rem;">Schwimmer ohne Sponsoren-Zuordnung</h2>
+    <?php
+    $schwimmer_ohne_sponsor = [];
+    $res = $conn->query("
+        SELECT sw.id, sw.startnummer, sw.vorname, sw.nachname
+        FROM Schwimmer sw
+        LEFT JOIN spenden_sponsoren ss ON sw.id = ss.schwimmer_id
+        WHERE ss.schwimmer_id IS NULL
+        ORDER BY sw.startnummer, sw.nachname, sw.vorname
+    ");
+    if ($res) { while ($r = $res->fetch_assoc()) $schwimmer_ohne_sponsor[] = $r; $res->free(); }
+    if (!empty($schwimmer_ohne_sponsor)):
+    ?>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Startnr.</th>
+                    <th>Name</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($schwimmer_ohne_sponsor as $r): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($r['startnummer']); ?></td>
+                        <td><?php echo htmlspecialchars($r['vorname'] . ' ' . $r['nachname']); ?></td>
+                        <td>
+                            <a href="/neue_verknuepfung.php?schwimmer_id=<?php echo $r['id']; ?>" class="btn btn-primary">Verknüpfen</a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php else: ?>
+        <div class="success-box" style="margin: 1rem 0;">
+            ✓ Alle Schwimmer haben Sponsoren zugeordnet.
+        </div>
+    <?php endif; ?>
+
     <!-- Sponsoren ohne Schwimmer-Zuordnung -->
     <h2 style="margin-top: 2rem;">Sponsoren ohne Schwimmer-Zuordnung</h2>
     <?php

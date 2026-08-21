@@ -4,6 +4,50 @@ require_once 'config.php';
 
 // Seite für Wartungszwecke: Zeigt fehlende Zuordnungen an
 
+// Datenbank-Export/Import Funktionen
+if (isset($_GET['action'])) {
+    if ($_GET['action'] === 'export') {
+        // Datenbank Export
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="vaibad_database_' . date('Y-m-d_His') . '.sql"');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+        
+        // Führe mysqldump aus
+        $db_host = $db_hostname ?? 'localhost';
+        $db_user = $db_username ?? 'root';
+        $db_pass = $db_password ?? '';
+        $db_name = $db_database ?? 'VAIBad_2';
+        
+        $command = "mysqldump --host=$db_host --user=$db_user --password=$db_pass $db_name 2>&1";
+        passthru($command);
+        exit;
+    } elseif ($_GET['action'] === 'import' && isset($_FILES['sql_file']) && $_FILES['sql_file']['error'] === UPLOAD_ERR_OK) {
+        // Datenbank Import
+        $tmp_file = $_FILES['sql_file']['tmp_name'];
+        $db_host = $db_hostname ?? 'localhost';
+        $db_user = $db_username ?? 'root';
+        $db_pass = $db_password ?? '';
+        $db_name = $db_database ?? 'VAIBad_2';
+        
+        // SQL-Datei einlesen und ausführen
+        $sql = file_get_contents($tmp_file);
+        if ($sql !== false) {
+            // Multi-Query ausführen
+            if ($conn->multi_query($sql)) {
+                // Alle Ergebnisse abrufen
+                while ($conn->next_result()) {
+                    if (!$conn->store_result()) {
+                        // Error handling
+                    }
+                }
+                $import_success = true;
+            } else {
+                $import_error = $conn->error;
+            }
+        }
+    }
+}
+
 // HTML-Header einbinden
 if (file_exists('includes/header.php')) {
     include 'includes/header.php';
@@ -25,8 +69,33 @@ if (file_exists('includes/header.php')) {
 
     <div class="action-bar">
         <a href="/index.php" class="btn btn-secondary">Startseite</a>
-        <a href="/" class="btn btn-secondary">Zur Startseite (Home)</a>
+        <a href="/wartung.php?action=export" class="btn btn-primary">Datenbank exportieren</a>
+        <form method="POST" action="/wartung.php?action=import" style="display: inline; margin-left: 10px;">
+            <input type="file" name="sql_file" accept=".sql" style="display: none;" id="sql_file_input">
+            <button type="button" onclick="document.getElementById('sql_file_input').click()" class="btn btn-primary">Datenbank importieren</button>
+            <input type="submit" id="sql_file_submit" style="display: none;">
+        </form>
     </div>
+    
+    <?php if (isset($import_success) && $import_success): ?>
+        <div class="success-box" style="margin: 1rem 0;">
+            ✓ Datenbank wurde erfolgreich importiert!
+        </div>
+    <?php elseif (isset($import_error)): ?>
+        <div class="error-box" style="margin: 1rem 0;">
+            Fehler beim Import: <?php echo htmlspecialchars($import_error); ?>
+        </div>
+    <?php endif; ?>
+
+    <script>
+    document.getElementById('sql_file_input').addEventListener('change', function() {
+        if (this.files.length > 0) {
+            if (confirm('Warnung: Der Import wird die bestehende Datenbank überschreiben! Fortfahren?')) {
+                document.getElementById('sql_file_submit').click();
+            }
+        }
+    });
+    </script>
 
     <!-- Schwimmer ohne Schwimmleistung -->
     <h2 style="margin-top: 2rem;">Schwimmer ohne Schwimmleistung</h2>
@@ -56,7 +125,7 @@ if (file_exists('includes/header.php')) {
                         <td><?php echo htmlspecialchars($r['startnummer']); ?></td>
                         <td><?php echo htmlspecialchars($r['vorname'] . ' ' . $r['nachname']); ?></td>
                         <td>
-                            <a href="/bearbeiten_schwimmer.php?id=<?php echo $r['id']; ?>" class="btn btn-primary">Bearbeiten</a>
+                            <a href="/schwimmleistung_eingeben.php?id=<?php echo $r['id']; ?>" class="btn btn-primary">Schwimmleistung eingeben</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -88,16 +157,12 @@ if (file_exists('includes/header.php')) {
             <thead>
                 <tr>
                     <th>Sponsor</th>
-                    <th>Aktion</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($sponsoren_ohne_schwimmer as $r): ?>
                     <tr>
                         <td><?php echo htmlspecialchars($r['name']); ?></td>
-                        <td>
-                            <a href="/bearbeiten_sponsor.php?id=<?php echo $r['id']; ?>" class="btn btn-primary">Bearbeiten</a>
-                        </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -128,16 +193,12 @@ if (file_exists('includes/header.php')) {
             <thead>
                 <tr>
                     <th>Team</th>
-                    <th>Aktion</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($teams_ohne_schwimmer as $r): ?>
                     <tr>
                         <td><?php echo htmlspecialchars($r['name']); ?></td>
-                        <td>
-                            <a href="/bearbeiten_team.php?id=<?php echo $r['id']; ?>" class="btn btn-primary">Bearbeiten</a>
-                        </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -146,46 +207,6 @@ if (file_exists('includes/header.php')) {
     <?php else: ?>
         <div class="success-box" style="margin: 1rem 0;">
             ✓ Alle Teams sind Schwimmern zugeordnet.
-        </div>
-    <?php endif; ?>
-
-    <!-- Hauptsponsoren ohne Schwimmer-Zuordnung -->
-    <h2 style="margin-top: 2rem;">Hauptsponsoren ohne Schwimmer-Zuordnung</h2>
-    <?php
-    $hauptsponsoren_ohne_schwimmer = [];
-    $res = $conn->query("
-        SELECT h.id, h.name
-        FROM Hauptsponsoren h
-        LEFT JOIN spenden_hauptsponsoren sh ON h.id = sh.hauptsponsor_id
-        WHERE sh.hauptsponsor_id IS NULL
-        ORDER BY h.name
-    ");
-    if ($res) { while ($r = $res->fetch_assoc()) $hauptsponsoren_ohne_schwimmer[] = $r; $res->free(); }
-    if (!empty($hauptsponsoren_ohne_schwimmer)):
-    ?>
-    <div class="table-container">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Hauptsponsor</th>
-                    <th>Aktion</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($hauptsponsoren_ohne_schwimmer as $r): ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($r['name']); ?></td>
-                        <td>
-                            <a href="/bearbeiten_hauptsponsor.php?id=<?php echo $r['id']; ?>" class="btn btn-primary">Bearbeiten</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-    <?php else: ?>
-        <div class="success-box" style="margin: 1rem 0;">
-            ✓ Alle Hauptsponsoren sind Schwimmern zugeordnet.
         </div>
     <?php endif; ?>
 </div>

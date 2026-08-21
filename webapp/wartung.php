@@ -76,7 +76,7 @@ if (isset($_GET['action'])) {
                         $columns[] = "`$key`";
                         if ($value === null) {
                             $values[] = 'NULL';
-                        } elseif ($key === 'bahnen_gesamt' && $table === 'Schwimmer') {
+                        } elseif ($key === 'schwimmleistung_gesamt' && $table === 'Schwimmer') {
                             // Spezialbehandlung für berechnete Spalte
                             $values[] = 'DEFAULT';
                         } elseif (is_numeric($value) && !is_string($value)) {
@@ -97,33 +97,58 @@ if (isset($_GET['action'])) {
         echo $output;
         exit;
     } elseif ($_GET['action'] === 'import' && isset($_FILES['sql_file']) && $_FILES['sql_file']['error'] === UPLOAD_ERR_OK) {
-        // Datenbank Import
+        // Datenbank Import - zeilenweise verarbeiten
         $tmp_file = $_FILES['sql_file']['tmp_name'];
         
-        // SQL-Datei einlesen
-        $sql = file_get_contents($tmp_file);
-        if ($sql !== false) {
-            // DROP TABLE Befehle ausführen (Tabellen leeren)
-            $lines = explode(";\n", $sql);
-            foreach ($lines as $line) {
+        // SQL-Datei zeilenweise einlesen
+        $sql_lines = file($tmp_file);
+        if ($sql_lines !== false) {
+            $errors = [];
+            $success_count = 0;
+            $sql_buffer = '';
+            
+            foreach ($sql_lines as $line) {
                 $line = trim($line);
-                if (strpos($line, 'DROP TABLE IF EXISTS') === 0) {
-                    $conn->query($line);
+                
+                // Leere Zeilen und Kommentare überspringen
+                if (empty($line) || $line[0] === '-' || $line[0] === '/') {
+                    continue;
+                }
+                
+                // Semikolon bedeutet Ende eines Statements
+                if (substr($line, -1) === ';') {
+                    $sql_buffer .= $line;
+                    
+                    // Führe das Statement aus
+                    if (!empty($sql_buffer)) {
+                        if ($conn->query($sql_buffer)) {
+                            $success_count++;
+                        } else {
+                            $errors[] = $conn->error . " (SQL: " . substr($sql_buffer, 0, 100) . "...)";
+                        }
+                        $sql_buffer = '';
+                    }
+                } else {
+                    $sql_buffer .= $line . " ";
                 }
             }
             
-            // CREATE TABLE und INSERT Befehle ausführen
-            if ($conn->multi_query($sql)) {
-                // Alle Ergebnisse abrufen
-                while ($conn->next_result()) {
-                    if (!$conn->store_result()) {
-                        // Error handling
-                    }
+            // Letztes Statement ausführen
+            if (!empty($sql_buffer)) {
+                if ($conn->query($sql_buffer)) {
+                    $success_count++;
+                } else {
+                    $errors[] = $conn->error . " (SQL: " . substr($sql_buffer, 0, 100) . "...)";
                 }
+            }
+            
+            if (empty($errors)) {
                 $import_success = true;
             } else {
-                $import_error = $conn->error;
+                $import_error = implode("\n", $errors);
             }
+        } else {
+            $import_error = "Konnte SQL-Datei nicht einlesen";
         }
     }
 }
@@ -165,11 +190,11 @@ if (file_exists('includes/header.php')) {
     
     <?php if (isset($import_success) && $import_success): ?>
         <div class="success-box" style="margin: 1rem 0;">
-            ✓ Datenbank wurde erfolgreich importiert!
+            ✓ Datenbank wurde erfolgreich importiert! (<?php echo isset($success_count) ? $success_count : '0'; ?> Befehle ausgeführt)
         </div>
     <?php elseif (isset($import_error)): ?>
         <div class="error-box" style="margin: 1rem 0;">
-            Fehler beim Import: <?php echo htmlspecialchars($import_error); ?>
+            Fehler beim Import: <?php echo nl2br(htmlspecialchars($import_error)); ?>
         </div>
     <?php endif; ?>
 

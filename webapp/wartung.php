@@ -7,29 +7,64 @@ require_once 'config.php';
 // Datenbank-Export/Import Funktionen
 if (isset($_GET['action'])) {
     if ($_GET['action'] === 'export') {
-        // Datenbank Export
+        // Datenbank Export - direkt über PHP
         header('Content-Type: application/octet-stream');
         header('Content-Disposition: attachment; filename="vaibad_database_' . date('Y-m-d_His') . '.sql"');
         header('Cache-Control: no-store, no-cache, must-revalidate');
         
-        // Führe mysqldump aus
-        $db_host = $db_hostname ?? 'localhost';
-        $db_user = $db_username ?? 'root';
-        $db_pass = $db_password ?? '';
-        $db_name = $db_database ?? 'VAIBad_2';
+        // Hole alle Tabellen
+        $tables = [];
+        $result = $conn->query("SHOW TABLES");
+        if ($result) {
+            while ($row = $result->fetch_row()) {
+                $tables[] = $row[0];
+            }
+            $result->free();
+        }
         
-        $command = "mysqldump --host=$db_host --user=$db_user --password=$db_pass $db_name 2>&1";
-        passthru($command);
+        // Exportiere jede Tabelle
+        $output = "-- VAIBad Datenbank Export\n";
+        $output .= "-- Erstellt am: " . date('Y-m-d H:i:s') . "\n\n";
+        
+        foreach ($tables as $table) {
+            // Tabelle erstellen
+            $output .= "--\n-- Tabelle: $table\n--\n";
+            $result = $conn->query("SHOW CREATE TABLE `$table`");
+            if ($result) {
+                $row = $result->fetch_row();
+                $output .= $row[1] . ";\n\n";
+                $result->free();
+            }
+            
+            // Daten exportieren
+            $result = $conn->query("SELECT * FROM `$table`");
+            if ($result && $result->num_rows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    $output .= "INSERT INTO `$table` VALUES(";
+                    $values = [];
+                    foreach ($row as $value) {
+                        if ($value === null) {
+                            $values[] = 'NULL';
+                        } elseif (is_numeric($value)) {
+                            $values[] = $value;
+                        } else {
+                            $values[] = '"' . $conn->real_escape_string($value) . '"';
+                        }
+                    }
+                    $output .= implode(', ', $values) . ");\n";
+                }
+                $result->free();
+            }
+            $output .= "\n";
+        }
+        
+        echo $output;
         exit;
     } elseif ($_GET['action'] === 'import' && isset($_FILES['sql_file']) && $_FILES['sql_file']['error'] === UPLOAD_ERR_OK) {
         // Datenbank Import
         $tmp_file = $_FILES['sql_file']['tmp_name'];
-        $db_host = $db_hostname ?? 'localhost';
-        $db_user = $db_username ?? 'root';
-        $db_pass = $db_password ?? '';
-        $db_name = $db_database ?? 'VAIBad_2';
         
-        // SQL-Datei einlesen und ausführen
+        // SQL-Datei einlesen
         $sql = file_get_contents($tmp_file);
         if ($sql !== false) {
             // Multi-Query ausführen
@@ -70,7 +105,7 @@ if (file_exists('includes/header.php')) {
     <div class="action-bar">
         <a href="/index.php" class="btn btn-secondary">Startseite</a>
         <a href="/wartung.php?action=export" class="btn btn-primary">Datenbank exportieren</a>
-        <form method="POST" action="/wartung.php?action=import" style="display: inline; margin-left: 10px;">
+        <form method="POST" action="/wartung.php?action=import" style="display: inline; margin-left: 10px;" enctype="multipart/form-data">
             <input type="file" name="sql_file" accept=".sql" style="display: none;" id="sql_file_input">
             <button type="button" onclick="document.getElementById('sql_file_input').click()" class="btn btn-primary">Datenbank importieren</button>
             <input type="submit" id="sql_file_submit" style="display: none;">

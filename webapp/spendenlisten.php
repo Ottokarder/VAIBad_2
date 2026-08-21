@@ -2,6 +2,11 @@
 // Datenbankverbindung einbinden
 require_once 'config.php';
 
+// Automatische Spendenberechnung ausführen
+if (file_exists(__DIR__ . '/includes/auto_berechnen.php')) {
+    require_once __DIR__ . '/includes/auto_berechnen.php';
+}
+
 // Spendenlisten (kompakt): nur Summen pro Spender/Team/Hauptsponsor.
 // Details sind auf einer eigenen Seite (spender_details.php) aufrufbar.
 // CSV: zwei Varianten - nur Summen (?export=csv) und mit Details (?export=csv-details).

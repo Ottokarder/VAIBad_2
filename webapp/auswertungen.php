@@ -2,6 +2,11 @@
 // Datenbankverbindung einbinden
 require_once 'config.php';
 
+// Automatische Spendenberechnung ausführen
+if (file_exists(__DIR__ . '/includes/auto_berechnen.php')) {
+    require_once __DIR__ . '/includes/auto_berechnen.php';
+}
+
 // Auswertungen je Durchlauf: Vormittag, Nachmittag oder Gesamt.
 // ?durchlauf=vormittag|nachmittag|gesamt  (Default: gesamt)
 $durchlauf = isset($_GET['durchlauf']) ? $_GET['durchlauf'] : 'gesamt';

@@ -2,6 +2,11 @@
 // Datenbankverbindung einbinden
 require_once 'config.php';
 
+// Automatische Spendenberechnung ausführen
+if (file_exists(__DIR__ . '/includes/auto_berechnen.php')) {
+    require_once __DIR__ . '/includes/auto_berechnen.php';
+}
+
 // Spendenlisten für Sponsoren - kompakte Übersicht
 // Jeder Sponsor wird einzeln angezeigt (kein Zusammenfassen)
 // Details-Button verlinkt zu sponsor_details.php?typ=sponsor&id=X

@@ -2,69 +2,60 @@
 // Datenbankverbindung einbinden
 require_once 'config.php';
 
-// Spendenlisten für Sponsoren - kompakte Übersicht mit Details-Funktion
-// Sponsoren werden nach Namen zusammengefasst (GROUP BY)
+// Spendenlisten für Sponsoren - kompakte Übersicht
+// Jeder Sponsor wird einzeln angezeigt (kein Zusammenfassen)
+// Details-Button verlinkt zu spender_details.php?typ=sponsor&id=X
 
-// --- Summen pro Sponsor ---
+// --- Alle Sponsoren-Einträge abrufen ---
 $sponsoren = [];
 $res = $conn->query("
-    SELECT sp.id AS sponsor_id, sp.name AS sponsor_name,
-           SUM(ss.spendenbetrag_vormittag) AS sum_vormittag,
-           SUM(ss.spendenbetrag_nachmittag) AS sum_nachmittag,
-           SUM(ss.spendenbetrag_gesamt) AS sum_gesamt,
-           COUNT(*) AS anzahl
+    SELECT sp.id AS sponsor_id, sp.name AS sponsor_name, sp.betrag_pro_bahn,
+           ss.spendenbetrag_vormittag, ss.spendenbetrag_nachmittag, ss.spendenbetrag_gesamt,
+           CONCAT(sw.vorname, ' ', sw.nachname) AS schwimmer_name,
+           sw.startnummer, sw.schwimmleistung_vormittag, sw.schwimmleistung_nachmittag
     FROM spenden_sponsoren ss
     JOIN Sponsoren sp ON ss.sponsoren_id = sp.id
-    GROUP BY sp.id, sp.name
-    ORDER BY sp.name
+    JOIN Schwimmer sw ON ss.schwimmer_id = sw.id
+    ORDER BY sp.name, sw.startnummer, sw.nachname, sw.vorname
 ");
 if ($res) { while ($r = $res->fetch_assoc()) $sponsoren[] = $r; $res->free(); }
+
+// --- Summen pro Sponsor berechnen (für die Zusammenfassung) ---
+$sponsor_sums = [];
+foreach ($sponsoren as $r) {
+    $sid = $r['sponsor_id'];
+    if (!isset($sponsor_sums[$sid])) {
+        $sponsor_sums[$sid] = [
+            'name' => $r['sponsor_name'],
+            'sum_vormittag' => 0,
+            'sum_nachmittag' => 0,
+            'sum_gesamt' => 0,
+            'anzahl' => 0,
+            'betrag_pro_bahn' => $r['betrag_pro_bahn']
+        ];
+    }
+    $sponsor_sums[$sid]['sum_vormittag'] += (float)$r['spendenbetrag_vormittag'];
+    $sponsor_sums[$sid]['sum_nachmittag'] += (float)$r['spendenbetrag_nachmittag'];
+    $sponsor_sums[$sid]['sum_gesamt'] += (float)$r['spendenbetrag_gesamt'];
+    $sponsor_sums[$sid]['anzahl']++;
+}
 
 // Gesamtsummen berechnen
 $g_vormittag = 0.0;
 $g_nachmittag = 0.0;
 $g_gesamt = 0.0;
-foreach ($sponsoren as $r) {
+foreach ($sponsor_sums as $r) {
     $g_vormittag += (float)$r['sum_vormittag'];
     $g_nachmittag += (float)$r['sum_nachmittag'];
     $g_gesamt += (float)$r['sum_gesamt'];
 }
 
-// --- Details für alle Sponsoren abrufen (für Modal-Ansicht) ---
-$sponsor_details = [];
-foreach ($sponsoren as $sponsor) {
-    $sid = (int)$sponsor['sponsor_id'];
-    $stmt = $conn->prepare("
-        SELECT ss.schwimmer_id,
-               CONCAT(sw.vorname, ' ', sw.nachname) AS schwimmer_name,
-               sw.startnummer,
-               sw.schwimmleistung_vormittag,
-               sw.schwimmleistung_nachmittag,
-               ss.spendenbetrag_vormittag,
-               ss.spendenbetrag_nachmittag,
-               ss.spendenbetrag_gesamt
-        FROM spenden_sponsoren ss
-        JOIN Schwimmer sw ON ss.schwimmer_id = sw.id
-        WHERE ss.sponsoren_id = ?
-        ORDER BY sw.startnummer, sw.nachname, sw.vorname
-    ");
-    $stmt->bind_param("i", $sid);
-    $stmt->execute();
-    $dres = $stmt->get_result();
-    $details = [];
-    while ($dr = $dres->fetch_assoc()) {
-        $details[] = $dr;
-    }
-    $stmt->close();
-    $sponsor_details[$sid] = $details;
-}
-
 // Textfilter "enthält" aus GET holen (Filterung nach Sponsorname)
 $filter = isset($_GET['filter']) ? trim($_GET['filter']) : '';
 if ($filter !== '') {
-    $sponsoren = array_values(array_filter($sponsoren, function ($r) use ($filter) {
-        return mb_stripos($r['sponsor_name'], $filter) !== false;
-    }));
+    $sponsor_sums = array_filter($sponsor_sums, function ($r) use ($filter) {
+        return mb_stripos($r['name'], $filter) !== false;
+    });
 }
 
 // CSV-Export
@@ -83,9 +74,9 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['csv', 'csv-details'], 
     // Abschnitt: nur Summen
     fputcsv($out, ['Spendenlisten - Sponsoren Summen'], ';');
     fputcsv($out, ['Name', 'Anzahl Schwimmer', 'Summe Vormittag', 'Summe Nachmittag', 'Summe Gesamt'], ';');
-    foreach ($sponsoren as $r) {
+    foreach ($sponsor_sums as $r) {
         fputcsv($out, [
-            $r['sponsor_name'], $r['anzahl'],
+            $r['name'], $r['anzahl'],
             $euro($r['sum_vormittag']), $euro($r['sum_nachmittag']), $euro($r['sum_gesamt'])
         ], ';');
     }
@@ -97,19 +88,18 @@ if (isset($_GET['export']) && in_array($_GET['export'], ['csv', 'csv-details'], 
         fputcsv($out, ['Spendenlisten - Sponsoren Details'], ';');
         fputcsv($out, ['Sponsor', 'Startnr.', 'Schwimmer', 'Bahnen VM', 'Bahnen NM', 'Vormittag', 'Nachmittag', 'Betrag'], ';');
 
-        foreach ($sponsoren as $sponsor) {
-            $sid = (int)$sponsor['sponsor_id'];
-            if (isset($sponsor_details[$sid])) {
-                foreach ($sponsor_details[$sid] as $dr) {
+        foreach ($sponsor_sums as $sid => $sum) {
+            foreach ($sponsoren as $r) {
+                if ($r['sponsor_id'] == $sid) {
                     fputcsv($out, [
-                        $sponsor['sponsor_name'],
-                        $dr['startnummer'],
-                        $dr['schwimmer_name'],
-                        $dr['schwimmleistung_vormittag'],
-                        $dr['schwimmleistung_nachmittag'],
-                        $euro($dr['spendenbetrag_vormittag']),
-                        $euro($dr['spendenbetrag_nachmittag']),
-                        $euro($dr['spendenbetrag_gesamt'])
+                        $r['sponsor_name'],
+                        $r['startnummer'],
+                        $r['schwimmer_name'],
+                        $r['schwimmleistung_vormittag'],
+                        $r['schwimmleistung_nachmittag'],
+                        $euro($r['spendenbetrag_vormittag']),
+                        $euro($r['spendenbetrag_nachmittag']),
+                        $euro($r['spendenbetrag_gesamt'])
                     ], ';');
                 }
             }
@@ -132,35 +122,8 @@ if (file_exists('includes/header.php')) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Spendenlisten - Sponsoren - VAIBad</title>
         <link rel="stylesheet" href="/css/style.css">
-        <style>
-            .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-            .modal-content { background-color: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 1000px; max-height: 80vh; overflow: auto; }
-            .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-            .close:hover { color: #000; }
-        </style>
     </head>
     <body>';
-}
-?>
-<?php
-// JavaScript für Modal-Funktion
-if (!file_exists('includes/header.php')) {
-    echo '<script>
-    function showDetails(sponsorId, sponsorName) {
-        document.getElementById("modal-title").textContent = "Details: " + sponsorName;
-        document.getElementById("modal-body").innerHTML = document.getElementById("details-" + sponsorId).innerHTML;
-        document.getElementById("detailsModal").style.display = "block";
-    }
-    function hideModal() {
-        document.getElementById("detailsModal").style.display = "none";
-    }
-    window.onclick = function(event) {
-        var modal = document.getElementById("detailsModal");
-        if (event.target == modal) {
-            hideModal();
-        }
-    }
-    </script>';
 }
 ?>
 <div class="container">
@@ -184,7 +147,7 @@ if (!file_exists('includes/header.php')) {
     </div>
 
     <?php
-    $leer = empty($sponsoren);
+    $leer = empty($sponsor_sums);
     if ($leer):
     ?>
         <div class="error-box" style="margin: 1rem 0;">
@@ -208,16 +171,16 @@ if (!file_exists('includes/header.php')) {
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($sponsoren)): ?>
-                    <?php foreach ($sponsoren as $r): ?>
+                <?php if (!empty($sponsor_sums)): ?>
+                    <?php foreach ($sponsor_sums as $sid => $r): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($r['sponsor_name']); ?></td>
+                            <td><?php echo htmlspecialchars($r['name']); ?></td>
                             <td><?php echo htmlspecialchars($r['anzahl']); ?></td>
                             <td><?php echo number_format($r['sum_vormittag'], 2, ',', '.'); ?> €</td>
                             <td><?php echo number_format($r['sum_nachmittag'], 2, ',', '.'); ?> €</td>
                             <td><strong><?php echo number_format($r['sum_gesamt'], 2, ',', '.'); ?> €</strong></td>
                             <td>
-                                <button onclick="showDetails(<?php echo $r['sponsor_id']; ?>, '<?php echo addslashes($r['sponsor_name']); ?>')" class="btn btn-primary">Details</button>
+                                <a href="/spender_details.php?typ=sponsor&id=<?php echo $sid; ?>" class="btn btn-primary">Details</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -245,66 +208,6 @@ if (!file_exists('includes/header.php')) {
         <?php echo number_format($g_gesamt, 2, ',', '.'); ?> €
     </div>
 </div>
-
-<!-- Modal für Details -->
-<div id="detailsModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="hideModal()">&times;</span>
-        <h2 id="modal-title">Details</h2>
-        <div id="modal-body"></div>
-    </div>
-</div>
-
-<!-- Versteckte Details-Tabellen für jeden Sponsor -->
-<?php foreach ($sponsoren as $sponsor): ?>
-    <?php $sid = (int)$sponsor['sponsor_id']; ?>
-    <?php $details = isset($sponsor_details[$sid]) ? $sponsor_details[$sid] : []; ?>
-    <div id="details-<?php echo $sid; ?>" style="display: none;">
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Startnr.</th>
-                        <th>Schwimmer</th>
-                        <th>Bahnen VM</th>
-                        <th>Bahnen NM</th>
-                        <th>Spende Vormittag</th>
-                        <th>Spende Nachmittag</th>
-                        <th>Spendensumme</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($details)): ?>
-                        <?php foreach ($details as $dr): ?>
-                            <tr>
-                                <td><strong><?php echo htmlspecialchars($dr['startnummer']); ?></strong></td>
-                                <td><?php echo htmlspecialchars($dr['schwimmer_name']); ?></td>
-                                <td><?php echo htmlspecialchars($dr['schwimmleistung_vormittag']); ?></td>
-                                <td><?php echo htmlspecialchars($dr['schwimmleistung_nachmittag']); ?></td>
-                                <td><?php echo number_format($dr['spendenbetrag_vormittag'], 2, ',', '.'); ?> €</td>
-                                <td><?php echo number_format($dr['spendenbetrag_nachmittag'], 2, ',', '.'); ?> €</td>
-                                <td><strong><?php echo number_format($dr['spendenbetrag_gesamt'], 2, ',', '.'); ?> €</strong></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        <tr style="font-weight: bold; background-color: #f0f0f0;">
-                            <td colspan="2">Summe</td>
-                            <td><?php echo number_format(array_sum(array_column($details, 'schwimmleistung_vormittag')), 0, '', '.'); ?></td>
-                            <td><?php echo number_format(array_sum(array_column($details, 'schwimmleistung_nachmittag')), 0, '', '.'); ?></td>
-                            <td><?php echo number_format(array_sum(array_column($details, 'spendenbetrag_vormittag')), 2, ',', '.'); ?> €</td>
-                            <td><?php echo number_format(array_sum(array_column($details, 'spendenbetrag_nachmittag')), 2, ',', '.'); ?> €</td>
-                            <td><?php echo number_format(array_sum(array_column($details, 'spendenbetrag_gesamt')), 2, ',', '.'); ?> €</td>
-                        </tr>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="7" class="no-data">Keine Details verfügbar.</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-<?php endforeach; ?>
-
 <?php
 // HTML-Footer einbinden
 if (file_exists('includes/footer.php')) {

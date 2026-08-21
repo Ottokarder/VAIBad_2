@@ -188,7 +188,7 @@ if (file_exists('includes/header.php')) {
     $res = $conn->query("
         SELECT sw.id, sw.startnummer, sw.vorname, sw.nachname
         FROM Schwimmer sw
-        LEFT JOIN spenden_sponsoren ss ON sw.id = ss.schwimmer_id
+        LEFT JOIN schwimmer_sponsor ss ON sw.id = ss.schwimmer_id
         WHERE ss.schwimmer_id IS NULL
         ORDER BY sw.startnummer, sw.nachname, sw.vorname
     ");

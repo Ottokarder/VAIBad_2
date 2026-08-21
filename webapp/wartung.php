@@ -160,7 +160,7 @@ if (file_exists('includes/header.php')) {
                         <td><?php echo htmlspecialchars($r['startnummer']); ?></td>
                         <td><?php echo htmlspecialchars($r['vorname'] . ' ' . $r['nachname']); ?></td>
                         <td>
-                            <a href="/schwimmleistung_eingeben.php?id=<?php echo $r['id']; ?>" class="btn btn-primary">Schwimmleistung eingeben</a>
+                            <a href="/schwimmleistung_eingeben.php?schwimmer_id=<?php echo $r['id']; ?>" class="btn btn-primary">Schwimmleistung eingeben</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

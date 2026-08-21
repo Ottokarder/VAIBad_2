@@ -23,6 +23,7 @@ if (isset($_GET['action'])) {
         }
         
         $output = "-- VAIBad Datenbank Export\n";
+        $output .= "\nSET FOREIGN_KEY_CHECKS = 0;\n\n";
         $output .= "-- Erstellt am: " . date('Y-m-d H:i:s') . "\n\n";
         
         // Exportiere jede Tabelle
@@ -95,6 +96,7 @@ if (isset($_GET['action'])) {
             $output .= "\n";
         }
         
+        $output .= "SET FOREIGN_KEY_CHECKS = 1;\n\n";
         echo $output;
         exit;
     } elseif ($_GET['action'] === 'import' && isset($_FILES['sql_file']) && $_FILES['sql_file']['error'] === UPLOAD_ERR_OK) {

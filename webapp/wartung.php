@@ -7,12 +7,12 @@ require_once 'config.php';
 // Datenbank-Export/Import Funktionen
 if (isset($_GET['action'])) {
     if ($_GET['action'] === 'export') {
-        // Datenbank Export - direkt über PHP
+        // Datenbank Export mit korrekter Struktur
         header('Content-Type: application/octet-stream');
         header('Content-Disposition: attachment; filename="vaibad_database_' . date('Y-m-d_His') . '.sql"');
         header('Cache-Control: no-store, no-cache, must-revalidate');
         
-        // Hole alle Tabellen
+        // Tabellenstrukturen aus der Datenbank holen
         $tables = [];
         $result = $conn->query("SHOW TABLES");
         if ($result) {
@@ -22,35 +22,71 @@ if (isset($_GET['action'])) {
             $result->free();
         }
         
-        // Exportiere jede Tabelle
         $output = "-- VAIBad Datenbank Export\n";
         $output .= "-- Erstellt am: " . date('Y-m-d H:i:s') . "\n\n";
         
+        // Definiere die korrekten CREATE TABLE Statements
+        $create_table_statements = [
+            'Hauptsponsoren' => "CREATE TABLE IF NOT EXISTS Hauptsponsoren (    id INT AUTO_INCREMENT PRIMARY KEY,    name VARCHAR(200) NOT NULL,    betrag_pro_bahn DECIMAL(10, 2) NOT NULL,    `limit` INT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+            'Sponsoren' => "CREATE TABLE IF NOT EXISTS Sponsoren (    id INT AUTO_INCREMENT PRIMARY KEY,    name VARCHAR(200) NOT NULL,    betrag_pro_bahn DECIMAL(10, 2) NOT NULL,    `limit` INT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+            'Teams' => "CREATE TABLE IF NOT EXISTS Teams (    id INT AUTO_INCREMENT PRIMARY KEY,    name VARCHAR(200) NOT NULL,    betrag_pro_bahn DECIMAL(10, 2) NOT NULL,    `limit` INT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+            'Schwimmer' => "CREATE TABLE IF NOT EXISTS Schwimmer (    id INT AUTO_INCREMENT PRIMARY KEY,    startnummer INT UNIQUE,    vorname VARCHAR(100) NOT NULL,    nachname VARCHAR(100) NOT NULL,    geburtsjahr INT NOT NULL,    schwimmleistung_vormittag INT NOT NULL DEFAULT 0,    schwimmleistung_nachmittag INT NOT NULL DEFAULT 0,    schwimmleistung_gesamt INT GENERATED ALWAYS AS (schwimmleistung_vormittag + schwimmleistung_nachmittag) STORED,    erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+            'schwimmer_sponsor' => "CREATE TABLE IF NOT EXISTS schwimmer_sponsor (    id INT AUTO_INCREMENT PRIMARY KEY,    schwimmer_id INT NOT NULL,    sponsoren_id INT NOT NULL,    FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE,    FOREIGN KEY (sponsoren_id) REFERENCES Sponsoren(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+            'schwimmer_team' => "CREATE TABLE IF NOT EXISTS schwimmer_team (    id INT AUTO_INCREMENT PRIMARY KEY,    schwimmer_id INT NOT NULL,    team_id INT NOT NULL,    FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE,    FOREIGN KEY (team_id) REFERENCES Teams(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+            'spenden_sponsoren' => "CREATE TABLE IF NOT EXISTS spenden_sponsoren (    id INT AUTO_INCREMENT PRIMARY KEY,    schwimmer_id INT NOT NULL,    sponsoren_id INT NOT NULL,    spendenbetrag_vormittag DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    spendenbetrag_nachmittag DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    spendenbetrag_gesamt DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP,    UNIQUE INDEX uniq_schwimmer_sponsor_spende (schwimmer_id, sponsoren_id),    FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE,    FOREIGN KEY (sponsoren_id) REFERENCES Sponsoren(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+            'spenden_teams' => "CREATE TABLE IF NOT EXISTS spenden_teams (    id INT AUTO_INCREMENT PRIMARY KEY,    team_id INT NOT NULL,    schwimmer_id INT NOT NULL,    spendenbetrag_vormittag DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    spendenbetrag_nachmittag DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    spendenbetrag_gesamt DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    spendenbetrag_gedeckelt DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP,    UNIQUE INDEX uniq_team_schwimmer_spende (team_id, schwimmer_id),    FOREIGN KEY (team_id) REFERENCES Teams(id) ON DELETE CASCADE,    FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+            'spenden_hauptsponsoren' => "CREATE TABLE IF NOT EXISTS spenden_hauptsponsoren (    id INT AUTO_INCREMENT PRIMARY KEY,    hauptsponsor_id INT NOT NULL,    schwimmer_id INT NOT NULL,    spendenbetrag_vormittag DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    spendenbetrag_nachmittag DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    spendenbetrag_gesamt DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    spendenbetrag_gedeckelt DECIMAL(10, 2) NOT NULL DEFAULT 0.00,    erstelldatum DATETIME DEFAULT CURRENT_TIMESTAMP,    UNIQUE INDEX uniq_hauptsponsor_schwimmer_spende (hauptsponsor_id, schwimmer_id),    FOREIGN KEY (hauptsponsor_id) REFERENCES Hauptsponsoren(id) ON DELETE CASCADE,    FOREIGN KEY (schwimmer_id) REFERENCES Schwimmer(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+        ];
+        
+        // Exportiere jede Tabelle
         foreach ($tables as $table) {
-            // Tabelle erstellen
-            $output .= "--\n-- Tabelle: $table\n--\n";
-            $result = $conn->query("SHOW CREATE TABLE `$table`");
-            if ($result) {
-                $row = $result->fetch_row();
-                $output .= $row[1] . ";\n\n";
-                $result->free();
+            // DROP TABLE + CREATE TABLE
+            if (isset($create_table_statements[$table])) {
+                $output .= "--\n-- Tabelle: $table\n--\n";
+                $output .= "DROP TABLE IF EXISTS `$table`;\n";
+                $output .= $create_table_statements[$table] . "\n\n";
+            } else {
+                // Für unbekannte Tabellen: nur DROP + CREATE via SHOW CREATE TABLE
+                $result = $conn->query("SHOW CREATE TABLE `$table`");
+                if ($result) {
+                    $row = $result->fetch_row();
+                    $output .= "--\n-- Tabelle: $table\n--\n";
+                    $output .= "DROP TABLE IF EXISTS `$table`;\n";
+                    $output .= $row[1] . ";\n\n";
+                    $result->free();
+                }
             }
             
             // Daten exportieren
             $result = $conn->query("SELECT * FROM `$table`");
             if ($result && $result->num_rows > 0) {
+                // Spaltennamen holen
+                $fields = [];
+                $meta = $result->fetch_fields();
+                foreach ($meta as $field) {
+                    $fields[] = $field->name;
+                }
+                
                 while ($row = $result->fetch_assoc()) {
-                    $output .= "INSERT INTO `$table` VALUES(";
+                    $output .= "INSERT INTO `$table` (";
+                    $columns = [];
                     $values = [];
-                    foreach ($row as $value) {
+                    
+                    foreach ($row as $key => $value) {
+                        $columns[] = "`$key`";
                         if ($value === null) {
                             $values[] = 'NULL';
-                        } elseif (is_numeric($value)) {
+                        } elseif ($key === 'bahnen_gesamt' && $table === 'Schwimmer') {
+                            // Spezialbehandlung für berechnete Spalte
+                            $values[] = 'DEFAULT';
+                        } elseif (is_numeric($value) && !is_string($value)) {
                             $values[] = $value;
                         } else {
                             $values[] = '"' . $conn->real_escape_string($value) . '"';
                         }
                     }
+                    
+                    $output .= implode(', ', $columns) . ") VALUES(";
                     $output .= implode(', ', $values) . ");\n";
                 }
                 $result->free();
@@ -67,7 +103,16 @@ if (isset($_GET['action'])) {
         // SQL-Datei einlesen
         $sql = file_get_contents($tmp_file);
         if ($sql !== false) {
-            // Multi-Query ausführen
+            // DROP TABLE Befehle ausführen (Tabellen leeren)
+            $lines = explode(";\n", $sql);
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (strpos($line, 'DROP TABLE IF EXISTS') === 0) {
+                    $conn->query($line);
+                }
+            }
+            
+            // CREATE TABLE und INSERT Befehle ausführen
             if ($conn->multi_query($sql)) {
                 // Alle Ergebnisse abrufen
                 while ($conn->next_result()) {

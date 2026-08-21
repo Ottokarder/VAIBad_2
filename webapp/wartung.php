@@ -231,7 +231,7 @@ if (file_exists('includes/header.php')) {
     $res = $conn->query("
         SELECT sp.id, sp.name
         FROM Sponsoren sp
-        LEFT JOIN spenden_sponsoren ss ON sp.id = ss.sponsoren_id
+        LEFT JOIN schwimmer_sponsor ss ON sp.id = ss.sponsoren_id
         WHERE ss.sponsoren_id IS NULL
         ORDER BY sp.name
     ");
@@ -268,7 +268,7 @@ if (file_exists('includes/header.php')) {
     $res = $conn->query("
         SELECT t.id, t.name
         FROM Teams t
-        LEFT JOIN spenden_teams st ON t.id = st.team_id
+        LEFT JOIN schwimmer_team st ON t.id = st.team_id
         WHERE st.team_id IS NULL
         ORDER BY t.name
     ");

@@ -25,6 +25,7 @@ if (file_exists('includes/header.php')) {
 
     <div class="action-bar">
         <a href="/index.php" class="btn btn-secondary">Startseite</a>
+        <a href="/" class="btn btn-secondary">Zur Startseite (Home)</a>
     </div>
 
     <!-- Schwimmer ohne Schwimmleistung -->

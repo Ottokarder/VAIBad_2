@@ -4,7 +4,7 @@ require_once 'config.php';
 
 // Spendenlisten für Sponsoren - kompakte Übersicht
 // Jeder Sponsor wird einzeln angezeigt (kein Zusammenfassen)
-// Details-Button verlinkt zu spender_details.php?typ=sponsor&id=X
+// Details-Button verlinkt zu sponsor_details.php?typ=sponsor&id=X
 
 // --- Alle Sponsoren-Einträge abrufen ---
 $sponsoren = [];
@@ -180,7 +180,7 @@ if (file_exists('includes/header.php')) {
                             <td><?php echo number_format($r['sum_nachmittag'], 2, ',', '.'); ?> €</td>
                             <td><strong><?php echo number_format($r['sum_gesamt'], 2, ',', '.'); ?> €</strong></td>
                             <td>
-                                <a href="/spender_details.php?typ=sponsor&id=<?php echo $sid; ?>" class="btn btn-primary">Details</a>
+                                <a href="/sponsor_details.php?typ=sponsor&id=<?php echo $sid; ?>" class="btn btn-primary">Details</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

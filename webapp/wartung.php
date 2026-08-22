@@ -7,9 +7,19 @@ require_once 'config.php';
 // Datenbank-Export/Import Funktionen
 if (isset($_GET['action'])) {
     if ($_GET['action'] === 'export') {
-        // Datenbank Export mit korrekter Struktur
+        // Export-Typ bestimmen: structure, data oder beides (default)
+        $export_type = isset($_GET['type']) ? $_GET['type'] : 'full';
+        
+        // Dateinamen anpassen
+        $type_suffix = '';
+        if ($export_type === 'structure') {
+            $type_suffix = '_structure';
+        } elseif ($export_type === 'data') {
+            $type_suffix = '_data';
+        }
+        
         header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="vaibad_database_' . date('Y-m-d_His') . '.sql"');
+        header('Content-Disposition: attachment; filename="vaibad_database_' . date('Y-m-d_His') . $type_suffix . '.sql"');
         header('Cache-Control: no-store, no-cache, must-revalidate');
         
         // Tabellenstrukturen aus der Datenbank holen
@@ -23,84 +33,103 @@ if (isset($_GET['action'])) {
         }
         
         $output = "-- VAIBad Datenbank Export\n";
-        $output .= "\nSET FOREIGN_KEY_CHECKS = 0;\n\n";
+        $output .= "-- Typ: " . ucfirst($export_type) . "\n";
         $output .= "-- Erstellt am: " . date('Y-m-d H:i:s') . "\n\n";
+        
+        // Für Daten-Export: FOREIGN_KEY_CHECKS deaktivieren
+        if ($export_type === 'data' || $export_type === 'full') {
+            $output .= "SET FOREIGN_KEY_CHECKS = 0;\n\n";
+        }
         
         // Exportiere jede Tabelle
         foreach ($tables as $table) {
-            // DROP TABLE + CREATE TABLE
-            $result = $conn->query("SHOW CREATE TABLE `$table`");
-            if ($result) {
-                $row = $result->fetch_row();
-                $output .= "--\n-- Tabelle: $table\n--\n";
-                $output .= "DROP TABLE IF EXISTS `$table`;\n";
-                $output .= $row[1] . ";\n\n";
-                $result->free();
+            // --- STRUKTUR-EXPORT (für 'structure' oder 'full') ---
+            if ($export_type === 'structure' || $export_type === 'full') {
+                $result = $conn->query("SHOW CREATE TABLE `$table`");
+                if ($result) {
+                    $row = $result->fetch_row();
+                    $output .= "--\n-- Tabelle: $table\n--\n";
+                    $output .= "DROP TABLE IF EXISTS `$table`;\n";
+                    $output .= $row[1] . ";\n\n";
+                    $result->free();
+                }
             }
             
-            // Daten exportieren
-            $result = $conn->query("SELECT * FROM `$table`");
-            if ($result && $result->num_rows > 0) {
-                // Spaltennamen holen
-                $fields = [];
-                $meta = $result->fetch_fields();
-                foreach ($meta as $field) {
-                    $fields[] = $field->name;
-                }
+            // --- DATEN-EXPORT (für 'data' oder 'full') ---
+            if ($export_type === 'data' || $export_type === 'full') {
+                // AUTO_INCREMENT zurücksetzen
+                $output .= "--\n-- Daten für Tabelle: $table\n--\n";
+                $output .= "ALTER TABLE `$table` AUTO_INCREMENT = 1;\n";
+                $output .= "DELETE FROM `$table`;\n\n";
                 
-                while ($row = $result->fetch_assoc()) {
-                    // Spezialbehandlung für Schwimmer-Tabelle
-                    if ($table === 'Schwimmer') {
-                        // Korrekte Spaltenreihenfolge für Schwimmer
-                        $output .= "INSERT INTO `$table` (";
-                        $columns = ['id', 'startnummer', 'vorname', 'nachname', 'geburtsjahr', 
-                                   'schwimmleistung_vormittag', 'schwimmleistung_nachmittag', 
-                                   'schwimmleistung_gesamt', 'erstelldatum'];
-                        $output .= implode(', ', array_map(function($c) { return "`$c`"; }, $columns)) . ") VALUES(";
-                        
-                        $values = [];
-                        $values[] = $row['id'];
-                        $values[] = $row['startnummer'] !== null ? $row['startnummer'] : 'NULL';
-                        $values[] = '"' . $conn->real_escape_string($row['vorname']) . '"';
-                        $values[] = '"' . $conn->real_escape_string($row['nachname']) . '"';
-                        $values[] = $row['geburtsjahr'];
-                        $values[] = $row['schwimmleistung_vormittag'];
-                        $values[] = $row['schwimmleistung_nachmittag'];
-                        $values[] = 'DEFAULT'; // bahnen_gesamt ist GENERATED ALWAYS AS
-                        $values[] = $row['erstelldatum'] !== null ? '"' . $row['erstelldatum'] . '"' : 'NULL';
-                        
-                        $output .= implode(', ', $values) . ");\n";
-                    } else {
-                        // Standard-INSERT für andere Tabellen
-                        $output .= "INSERT INTO `$table` (";
-                        $columns = [];
-                        $values = [];
-                        
-                        foreach ($row as $key => $value) {
-                            $columns[] = "`$key`";
-                            if ($value === null) {
-                                $values[] = 'NULL';
-                            } elseif (is_numeric($value) && !is_string($value)) {
-                                $values[] = $value;
-                            } else {
-                                $values[] = '"' . $conn->real_escape_string($value) . '"';
-                            }
-                        }
-                        
-                        $output .= implode(', ', $columns) . ") VALUES(";
-                        $output .= implode(', ', $values) . ");\n";
+                // Daten exportieren
+                $result = $conn->query("SELECT * FROM `$table`");
+                if ($result && $result->num_rows > 0) {
+                    // Spaltennamen holen
+                    $fields = [];
+                    $meta = $result->fetch_fields();
+                    foreach ($meta as $field) {
+                        $fields[] = $field->name;
                     }
+                    
+                    while ($row = $result->fetch_assoc()) {
+                        // Spezialbehandlung für Schwimmer-Tabelle
+                        if ($table === 'Schwimmer') {
+                            // Korrekte Spaltenreihenfolge für Schwimmer
+                            $output .= "INSERT INTO `$table` (";
+                            $columns = ['id', 'startnummer', 'vorname', 'nachname', 'geburtsjahr', 
+                                       'schwimmleistung_vormittag', 'schwimmleistung_nachmittag', 
+                                       'schwimmleistung_gesamt', 'erstelldatum'];
+                            $output .= implode(', ', array_map(function($c) { return "`$c`"; }, $columns)) . ") VALUES(";
+                            
+                            $values = [];
+                            $values[] = $row['id'];
+                            $values[] = $row['startnummer'] !== null ? $row['startnummer'] : 'NULL';
+                            $values[] = '"' . $conn->real_escape_string($row['vorname']) . '"';
+                            $values[] = '"' . $conn->real_escape_string($row['nachname']) . '"';
+                            $values[] = $row['geburtsjahr'];
+                            $values[] = $row['schwimmleistung_vormittag'];
+                            $values[] = $row['schwimmleistung_nachmittag'];
+                            $values[] = 'DEFAULT'; // bahnen_gesamt ist GENERATED ALWAYS AS
+                            $values[] = $row['erstelldatum'] !== null ? '"' . $row['erstelldatum'] . '"' : 'NULL';
+                            
+                            $output .= implode(', ', $values) . ");\n";
+                        } else {
+                            // Standard-INSERT für andere Tabellen
+                            $output .= "INSERT INTO `$table` (";
+                            $columns = [];
+                            $values = [];
+                            
+                            foreach ($row as $key => $value) {
+                                $columns[] = "`$key`";
+                                if ($value === null) {
+                                    $values[] = 'NULL';
+                                } elseif (is_numeric($value) && !is_string($value)) {
+                                    $values[] = $value;
+                                } else {
+                                    $values[] = '"' . $conn->real_escape_string($value) . '"';
+                                }
+                            }
+                            
+                            $output .= implode(', ', $columns) . ") VALUES(";
+                            $output .= implode(', ', $values) . ");\n";
+                        }
+                    }
+                    $result->free();
                 }
-                $result->free();
+                $output .= "\n";
             }
-            $output .= "\n";
         }
         
-        $output .= "SET FOREIGN_KEY_CHECKS = 1;\n\n";
+        // FOREIGN_KEY_CHECKS wieder aktivieren
+        if ($export_type === 'data' || $export_type === 'full') {
+            $output .= "SET FOREIGN_KEY_CHECKS = 1;\n\n";
+        }
+        
         echo $output;
         exit;
     } elseif ($_GET['action'] === 'import' && isset($_FILES['sql_file']) && $_FILES['sql_file']['error'] === UPLOAD_ERR_OK) {
-        // Datenbank Import - zeilenweise verarbeiten
+        // Datenbank Import - zeilenweise verarbeiten mit Transaktion
         $tmp_file = $_FILES['sql_file']['tmp_name'];
         
         // SQL-Datei zeilenweise einlesen
@@ -110,45 +139,55 @@ if (isset($_GET['action'])) {
             $success_count = 0;
             $sql_buffer = '';
             
-            foreach ($sql_lines as $line) {
-                $line = trim($line);
-                
-                // Leere Zeilen und Kommentare überspringen
-                if (empty($line) || $line[0] === '-' || $line[0] === '/') {
-                    continue;
-                }
-                
-                // Semikolon bedeutet Ende eines Statements
-                if (substr($line, -1) === ';') {
-                    $sql_buffer .= $line;
+            // Transaktion starten
+            $conn->begin_transaction();
+            
+            try {
+                foreach ($sql_lines as $line) {
+                    $line = trim($line);
                     
-                    // Führe das Statement aus
-                    if (!empty($sql_buffer)) {
-                        if ($conn->query($sql_buffer)) {
-                            $success_count++;
-                        } else {
-                            $errors[] = $conn->error . " (SQL: " . substr($sql_buffer, 0, 100) . "...)";
-                        }
-                        $sql_buffer = '';
+                    // Leere Zeilen und Kommentare überspringen
+                    if (empty($line) || $line[0] === '-' || $line[0] === '/') {
+                        continue;
                     }
-                } else {
-                    $sql_buffer .= $line . " ";
+                    
+                    // Semikolon bedeutet Ende eines Statements
+                    if (substr($line, -1) === ';') {
+                        $sql_buffer .= $line;
+                        
+                        // Führe das Statement aus
+                        if (!empty($sql_buffer)) {
+                            if ($conn->query($sql_buffer)) {
+                                $success_count++;
+                            } else {
+                                $errors[] = $conn->error . " (SQL: " . substr($sql_buffer, 0, 100) . "...)";
+                            }
+                            $sql_buffer = '';
+                        }
+                    } else {
+                        $sql_buffer .= $line . " ";
+                    }
                 }
-            }
-            
-            // Letztes Statement ausführen
-            if (!empty($sql_buffer)) {
-                if ($conn->query($sql_buffer)) {
-                    $success_count++;
-                } else {
-                    $errors[] = $conn->error . " (SQL: " . substr($sql_buffer, 0, 100) . "...)";
+                
+                // Letztes Statement ausführen
+                if (!empty($sql_buffer)) {
+                    if ($conn->query($sql_buffer)) {
+                        $success_count++;
+                    } else {
+                        $errors[] = $conn->error . " (SQL: " . substr($sql_buffer, 0, 100) . "...)";
+                    }
                 }
-            }
-            
-            if (empty($errors)) {
-                $import_success = true;
-            } else {
-                $import_error = implode("\n", $errors);
+                
+                if (empty($errors)) {
+                    $conn->commit();
+                    $import_success = true;
+                } else {
+                    $conn->rollback();
+                    $import_error = implode("\n", $errors);
+                }
+            } catch (Exception $e) {
+                $conn->rollback();
+                $import_error = "Fehler bei der Transaktion: " . $e->getMessage();
             }
         } else {
             $import_error = "Konnte SQL-Datei nicht einlesen";
@@ -183,7 +222,11 @@ if (file_exists('includes/header.php')) {
 
     <div class="action-bar">
         <a href="/index.php" class="btn btn-secondary">Startseite</a>
-        <a href="/wartung.php?action=export" class="btn btn-primary">Datenbank exportieren</a>
+        <div style="display: inline-flex; gap: 10px; margin-left: 10px;">
+            <a href="/wartung.php?action=export&type=full" class="btn btn-primary">Datenbank exportieren (vollständig)</a>
+            <a href="/wartung.php?action=export&type=structure" class="btn btn-primary">Struktur exportieren</a>
+            <a href="/wartung.php?action=export&type=data" class="btn btn-primary">Daten exportieren</a>
+        </div>
         <form method="POST" action="/wartung.php?action=import" style="display: inline; margin-left: 10px;" enctype="multipart/form-data">
             <input type="file" name="sql_file" accept=".sql" style="display: none;" id="sql_file_input">
             <button type="button" onclick="document.getElementById('sql_file_input').click()" class="btn btn-primary">Datenbank importieren</button>
@@ -204,7 +247,7 @@ if (file_exists('includes/header.php')) {
     <script>
     document.getElementById('sql_file_input').addEventListener('change', function() {
         if (this.files.length > 0) {
-            if (confirm('Warnung: Der Import wird die bestehende Datenbank überschreiben! Fortfahren?')) {
+            if (confirm('Warnung: Der Import wird ALLE DATEN in den Tabellen LÖSCHEN und durch die Importdaten ersetzen! Fortfahren?')) {
                 document.getElementById('sql_file_submit').click();
             }
         }

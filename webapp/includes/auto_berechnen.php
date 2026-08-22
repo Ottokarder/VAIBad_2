@@ -130,10 +130,16 @@ if (!defined('AUTO_BERECHNET')) {
                         if ($team && $team['limit'] !== null && $team_sum > (float)$team['limit']) {
                             // Deckelung anwenden
                             $factor = (float)$team['limit'] / $team_sum;
-                            $conn->query("UPDATE spenden_teams SET spendenbetrag_gedeckelt = spendenbetrag_gesamt * $factor WHERE team_id = $team_id");
+                            $stmt_update = $conn->prepare("UPDATE spenden_teams SET spendenbetrag_gedeckelt = spendenbetrag_gesamt * ? WHERE team_id = ?");
+                            $stmt_update->bind_param("di", $factor, $team_id);
+                            $stmt_update->execute();
+                            $stmt_update->close();
                         } else {
                             // Keine Deckelung nötig
-                            $conn->query("UPDATE spenden_teams SET spendenbetrag_gedeckelt = spendenbetrag_gesamt WHERE team_id = $team_id");
+                            $stmt_update = $conn->prepare("UPDATE spenden_teams SET spendenbetrag_gedeckelt = spendenbetrag_gesamt WHERE team_id = ?");
+                            $stmt_update->bind_param("i", $team_id);
+                            $stmt_update->execute();
+                            $stmt_update->close();
                         }
                     }
                     $result2->free();
@@ -211,10 +217,16 @@ if (!defined('AUTO_BERECHNET')) {
                         if ($hs && $hs['limit'] !== null && $hs_sum > (float)$hs['limit']) {
                             // Deckelung anwenden
                             $factor = (float)$hs['limit'] / $hs_sum;
-                            $conn->query("UPDATE spenden_hauptsponsoren SET spendenbetrag_gedeckelt = spendenbetrag_gesamt * $factor WHERE hauptsponsor_id = $hs_id");
+                            $stmt_update = $conn->prepare("UPDATE spenden_hauptsponsoren SET spendenbetrag_gedeckelt = spendenbetrag_gesamt * ? WHERE hauptsponsor_id = ?");
+                            $stmt_update->bind_param("di", $factor, $hs_id);
+                            $stmt_update->execute();
+                            $stmt_update->close();
                         } else {
                             // Keine Deckelung nötig
-                            $conn->query("UPDATE spenden_hauptsponsoren SET spendenbetrag_gedeckelt = spendenbetrag_gesamt WHERE hauptsponsor_id = $hs_id");
+                            $stmt_update = $conn->prepare("UPDATE spenden_hauptsponsoren SET spendenbetrag_gedeckelt = spendenbetrag_gesamt WHERE hauptsponsor_id = ?");
+                            $stmt_update->bind_param("i", $hs_id);
+                            $stmt_update->execute();
+                            $stmt_update->close();
                         }
                     }
                     $result2->free();
